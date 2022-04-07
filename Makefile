@@ -9,6 +9,9 @@ run: ## run
 
 all: compile run ## build and run
 
+test:
+	@go test ./...
+
 gomod_tidy:
 	 go mod tidy
 
