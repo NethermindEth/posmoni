@@ -36,10 +36,6 @@ func prepareYML(dir, yml string) (string, error) {
 }
 
 func prepareInitTestCase(t *testing.T, tempDir string, tc *initTestCase) {
-	for k, v := range tc.env {
-		t.Setenv(k, v)
-	}
-
 	if tc.yml != skip {
 		f, err := prepareYML(tempDir, tc.yml)
 		if err != nil {
@@ -63,6 +59,11 @@ func prepareInitTestCase(t *testing.T, tempDir string, tc *initTestCase) {
 			t.Logf("using yml: %s", tc.yml)
 			t.Fatalf("got an error reading config file. Error: %s", err)
 		}
+	} else {
+		viper.SetEnvPrefix("PGM")
+		for k, v := range tc.env {
+			t.Setenv(k, v)
+		}
 	}
 }
 
@@ -84,7 +85,7 @@ func checkErr(t *testing.T, descr string, isErr bool, err error) bool {
 func TestInit(t *testing.T) {
 	td := t.TempDir()
 
-	tcs := [...]initTestCase{
+	tcs := []initTestCase{
 		{
 			yml: `
             validators: [123123, "0x1414fa980b"]
@@ -97,10 +98,45 @@ func TestInit(t *testing.T) {
 			},
 			isError: false,
 		},
+		{
+			yml: `
+            validators: "0x1414fa980b"
+            consensus: "http://153.168.127.111:5052"`,
+			want: eth2Config{
+				Validators: []string{"0x1414fa980b"},
+				Consensus:  []string{"http://153.168.127.111:5052"},
+			},
+			isError: false,
+		},
+		{
+			yml: `
+            validators: 
+            consensus: "http://153.168.127.111:5052"`,
+			want:    eth2Config{},
+			isError: true,
+		},
+		{
+			yml: `
+            validators: "0x1414fa980b"
+            consensus: `,
+			want:    eth2Config{},
+			isError: true,
+		},
+		{
+			yml: `
+            consensus: `,
+			want:    eth2Config{},
+			isError: true,
+		},
+		{
+			yml:     ``,
+			want:    eth2Config{},
+			isError: true,
+		},
 	}
 
 	for i, tc := range tcs {
-		name := fmt.Sprintf("Test case %d", i)
+		name := fmt.Sprintf("Test case with config file %d", i)
 		t.Run(name, func(t *testing.T) {
 			prepareInitTestCase(t, td, &tc)
 
@@ -111,6 +147,99 @@ func TestInit(t *testing.T) {
 			got, err := Init()
 
 			descr := fmt.Sprintf("Init() with yml %s", tc.yml)
+			if ok := checkErr(t, descr, tc.isError, err); !ok {
+				t.FailNow()
+			}
+			assert.Equal(t, tc.want, got, descr)
+
+			cleanInitTestCase()
+		})
+	}
+
+	tcs = []initTestCase{
+		{
+			yml: skip,
+			env: map[string]string{
+				"PGM_VALIDATORS": "123123,0x1414fa980b",
+				"PGM_CONSENSUS":  "http://153.168.127.111:5052,http://154.168.127.221:5052",
+			},
+			want: eth2Config{
+				Validators: []string{"123123", "0x1414fa980b"},
+				Consensus:  []string{"http://153.168.127.111:5052", "http://154.168.127.221:5052"},
+			},
+			isError: false,
+		},
+		{
+			yml: skip,
+			env: map[string]string{
+				"PGM_VALIDATORS": "0x1414fa980b",
+				"PGM_CONSENSUS":  "http://153.168.127.111:5052",
+			},
+			want: eth2Config{
+				Validators: []string{"0x1414fa980b"},
+				Consensus:  []string{"http://153.168.127.111:5052"},
+			},
+			isError: false,
+		},
+		{
+			yml: skip,
+			env: map[string]string{
+				"PGM_VALIDATORS": "",
+				"PGM_CONSENSUS":  "http://153.168.127.111:5052",
+			},
+			want:    eth2Config{},
+			isError: true,
+		},
+		{
+			yml: skip,
+			env: map[string]string{
+				"PGM_CONSENSUS": "http://153.168.127.111:5052",
+			},
+			want:    eth2Config{},
+			isError: true,
+		},
+		{
+			yml: skip,
+			env: map[string]string{
+				"PGM_VALIDATORS": "0x1414fa980b",
+			},
+			want:    eth2Config{},
+			isError: true,
+		},
+		{
+			yml: skip,
+			env: map[string]string{
+				"PGM_VALIDATORS": "0x1414fa980b",
+				"PGM_CONSENSUS":  "",
+			},
+			want:    eth2Config{},
+			isError: true,
+		},
+		{
+			yml: skip,
+			env: map[string]string{
+				"PGM_VALIDATORS": "",
+				"PGM_CONSENSUS":  "",
+			},
+			want:    eth2Config{},
+			isError: true,
+		},
+		{
+			yml:     skip,
+			env:     map[string]string{},
+			want:    eth2Config{},
+			isError: true,
+		},
+	}
+
+	for i, tc := range tcs {
+		name := fmt.Sprintf("Test case with ENV %d", i)
+		t.Run(name, func(t *testing.T) {
+			prepareInitTestCase(t, td, &tc)
+
+			got, err := Init()
+
+			descr := fmt.Sprintf("Init() with env %s", tc.env)
 			if ok := checkErr(t, descr, tc.isError, err); !ok {
 				t.FailNow()
 			}

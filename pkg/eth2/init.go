@@ -2,20 +2,47 @@ package eth2
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/spf13/viper"
 )
 
 func Init() (cfg eth2Config, err error) {
 	viper.SetEnvPrefix("PGM")
+	viper.BindEnv(validators)
+	viper.BindEnv(consensus)
 
-	cfg.Validators = viper.GetStringSlice(validators)
-	if len(cfg.Validators) == 0 {
-		return cfg, fmt.Errorf(NoValidatorsFoundError)
+	v, err := checkVariable(validators, NoValidatorsFoundError)
+	if err != nil {
+		return cfg, err
 	}
-	cfg.Consensus = viper.GetStringSlice(consensus)
-	if len(cfg.Consensus) == 0 {
-		return cfg, fmt.Errorf(NoConsensusFoundError)
+
+	c, err := checkVariable(consensus, NoConsensusFoundError)
+	if err != nil {
+		return cfg, err
+	}
+
+	cfg.Validators = v
+	cfg.Consensus = c
+
+	return
+}
+
+func checkVariable(key, errMsg string) (data []string, err error) {
+	// if data = viper.GetStringSlice(key); len(data) == 0 {
+	// 	data = strings.Split(viper.GetString(key), ",")
+	// }
+	var ok bool
+	tmp := viper.Get(key)
+
+	if _, ok = tmp.(string); ok {
+		data = strings.Split(viper.GetString(key), ",")
+	} else {
+		data = viper.GetStringSlice(key)
+	}
+
+	if len(data) == 0 {
+		return data, fmt.Errorf(errMsg)
 	}
 
 	return
