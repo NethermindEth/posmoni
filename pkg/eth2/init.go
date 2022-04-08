@@ -8,6 +8,7 @@ import (
 )
 
 func Init() (cfg eth2Config, err error) {
+	fmt.Println("Initializing configuration")
 	viper.SetEnvPrefix("PGM")
 	viper.BindEnv(validators)
 	viper.BindEnv(consensus)
@@ -29,9 +30,6 @@ func Init() (cfg eth2Config, err error) {
 }
 
 func checkVariable(key, errMsg string) (data []string, err error) {
-	// if data = viper.GetStringSlice(key); len(data) == 0 {
-	// 	data = strings.Split(viper.GetString(key), ",")
-	// }
 	var ok bool
 	tmp := viper.Get(key)
 
