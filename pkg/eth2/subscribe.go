@@ -42,6 +42,7 @@ func subscribe(done <-chan struct{}, sub SubscribeOpts) <-chan checkpoint {
 		}
 
 		<-done
+		log.Info("Subscription to ", sub.streamURL, " ended")
 		close(c)
 	}()
 
