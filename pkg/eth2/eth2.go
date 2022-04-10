@@ -6,11 +6,10 @@ import (
 
 	"github.com/NethermindEth/posgonitor/configs"
 
-	sse "github.com/r3labs/sse/v2"
 	log "github.com/sirupsen/logrus"
 )
 
-func Monitor(handleCfg bool) {
+func Monitor(handleCfg bool) []chan struct{} {
 	if handleCfg {
 		configs.InitConfig()
 	}
@@ -23,47 +22,28 @@ func Monitor(handleCfg bool) {
 
 	configs.InitLogging()
 
-	log.Info(cfg)
-	chkps := subscribe(cfg.Consensus)
+	log.Debugf("Configuration object: %v", cfg)
+
+	subDone := make(chan struct{})
+	sub := SubscribeOpts{
+		endpoints:  cfg.Consensus,
+		streamURL:  finalizedCkptTopic,
+		subscriber: &sseSubscriber{},
+	}
+	chkps := subscribe(subDone, sub)
 
 	//TODO: Init and setup DB
 
 	go getValidatorBalance(chkps)
 	go setupAlerts(chkps)
+
+	return []chan struct{}{subDone}
 }
 
-func subscribe(endpoints []string) <-chan checkpoint {
-	c := make(chan checkpoint)
-
-	go func() {
-		for _, endpoint := range endpoints {
-			url := endpoint + "/eth/v1/events?topics=finalized_checkpoint"
-			log.Info("Subscribing to: ", url)
-
-			client := sse.NewClient(url)
-			client.SubscribeRaw(func(msg *sse.Event) {
-				if len(msg.Data) == 0 {
-					log.WithField(configs.Component, "ETH2").Debug("Got empty event")
-					return
-				}
-
-				log.WithField(configs.Component, "ETH2").Infof("Got event data: %v", string(msg.Data))
-
-				chkp, err := parseEventData(msg.Data)
-				if err != nil {
-					log.WithField(configs.Component, "ETH2").Errorf(ParseDataError, err)
-				} else {
-					c <- chkp
-				}
-			})
-		}
-	}()
-
-	return c
-}
-
-func getValidatorBalance(<-chan checkpoint) {
-
+func getValidatorBalance(chkps <-chan checkpoint) {
+	for c := range chkps {
+		log.WithField(configs.Component, "ETH2").Infof("Got checkpoint: %+v", c)
+	}
 }
 
 func setupAlerts(<-chan checkpoint) {

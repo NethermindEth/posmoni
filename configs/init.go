@@ -1,5 +1,6 @@
 package configs
 
+// notest
 import (
 	"fmt"
 	"os"
