@@ -10,3 +10,9 @@ type checkpoint struct {
 	State string `json:"state"`
 	Epoch string `json:"epoch"`
 }
+
+type SubscribeOpts struct {
+	endpoints  []string
+	streamURL  string
+	subscriber Subscriber
+}
