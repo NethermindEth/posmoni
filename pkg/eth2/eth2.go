@@ -22,7 +22,7 @@ func Monitor(handleCfg bool) []chan struct{} {
 
 	configs.InitLogging()
 
-	log.Debugf("Configuration object: %v", cfg)
+	log.Debugf("Configuration object: %+v", cfg)
 
 	subDone := make(chan struct{})
 	sub := SubscribeOpts{
