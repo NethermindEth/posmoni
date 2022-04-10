@@ -21,7 +21,7 @@ const (
 	skip = "@@@SKIP@@@"
 )
 
-func prepareYML(dir, yml string) (string, error) {
+func setupYML(dir, yml string) (string, error) {
 	f, err := ioutil.TempFile(dir, "yml_test.*.yaml")
 	if err != nil {
 		return "", fmt.Errorf("Something wrong went while creating temporal yml file. Error: %s", err)
@@ -35,9 +35,9 @@ func prepareYML(dir, yml string) (string, error) {
 	return f.Name(), nil
 }
 
-func prepareInitTestCase(t *testing.T, tempDir string, tc *initTestCase) {
+func setupInitTestCase(t *testing.T, tempDir string, tc *initTestCase) {
 	if tc.yml != skip {
-		f, err := prepareYML(tempDir, tc.yml)
+		f, err := setupYML(tempDir, tc.yml)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -138,7 +138,7 @@ func TestInit(t *testing.T) {
 	for i, tc := range tcs {
 		name := fmt.Sprintf("Test case with config file %d", i)
 		t.Run(name, func(t *testing.T) {
-			prepareInitTestCase(t, td, &tc)
+			setupInitTestCase(t, td, &tc)
 
 			viper.AddConfigPath(td)
 			viper.SetConfigType("yml")
@@ -235,7 +235,7 @@ func TestInit(t *testing.T) {
 	for i, tc := range tcs {
 		name := fmt.Sprintf("Test case with ENV %d", i)
 		t.Run(name, func(t *testing.T) {
-			prepareInitTestCase(t, td, &tc)
+			setupInitTestCase(t, td, &tc)
 
 			got, err := Init()
 
