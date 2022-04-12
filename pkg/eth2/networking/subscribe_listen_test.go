@@ -1,6 +1,6 @@
 //go:build integration
 
-package eth2
+package networking
 
 import (
 	"os"
@@ -13,8 +13,8 @@ import (
 func TestListen(t *testing.T) {
 	t.Parallel()
 
-	sub := sseSubscriber{}
-	ch := make(chan checkpoint)
+	sub := SSESubscriber{}
+	ch := make(chan Checkpoint)
 	defer close(ch)
 
 	endpoint, exists := os.LookupEnv("SSE_ENDPOINT")
@@ -22,11 +22,11 @@ func TestListen(t *testing.T) {
 		t.Fatal("SSE_ENDPOINT not set")
 	}
 
-	go sub.listen(endpoint+finalizedCkptTopic, ch)
+	go sub.listen(endpoint+FinalizedCkptTopic, ch)
 
 	for event := range ch {
 		t.Logf("Checkpoint received: %+v", event)
-		assert.NotEqual(t, event, checkpoint{}, "checkpoint object should not be empty")
+		assert.NotEqual(t, event, Checkpoint{}, "Checkpoint object should not be empty")
 
 		assert.IsType(t, event.Block, "", "block should be a string")
 		assert.IsType(t, event.State, "", "state should be a string")

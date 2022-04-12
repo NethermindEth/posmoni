@@ -1,4 +1,4 @@
-package eth2
+package networking
 
 import (
 	"github.com/NethermindEth/posgonitor/configs"
@@ -6,10 +6,10 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-type sseSubscriber struct {
+type SSESubscriber struct {
 }
 
-func (s sseSubscriber) listen(url string, ch chan<- checkpoint) {
+func (s SSESubscriber) listen(url string, ch chan<- Checkpoint) {
 	// notest
 	log.Info("Subscribing to: ", url)
 
@@ -24,25 +24,25 @@ func (s sseSubscriber) listen(url string, ch chan<- checkpoint) {
 
 		chkp, err := parseEventData(msg.Data)
 		if err != nil {
-			log.WithField(configs.Component, "ETH2").Errorf(ParseDataError, err)
+			log.WithField(configs.Component, "ETH2").Errorf(parseDataError, err)
 		} else {
 			ch <- chkp
 		}
 	})
 }
 
-func subscribe(done <-chan struct{}, sub SubscribeOpts) <-chan checkpoint {
-	c := make(chan checkpoint)
+func Subscribe(done <-chan struct{}, sub SubscribeOpts) <-chan Checkpoint {
+	c := make(chan Checkpoint)
 
 	go func() {
 		//TODO: Add support for multiple endpoints. This only works well for one endpoint
-		for _, endpoint := range sub.endpoints {
-			url := endpoint + sub.streamURL
-			go sub.subscriber.listen(url, c)
+		for _, endpoint := range sub.Endpoints {
+			url := endpoint + sub.StreamURL
+			go sub.Subscriber.listen(url, c)
 		}
 
 		<-done
-		log.Info("Subscription to ", sub.streamURL, " ended")
+		log.Info("Subscription to ", sub.StreamURL, " ended")
 		close(c)
 	}()
 
