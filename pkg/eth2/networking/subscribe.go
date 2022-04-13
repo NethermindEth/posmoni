@@ -22,7 +22,7 @@ func (s SSESubscriber) listen(url string, ch chan<- Checkpoint) {
 
 		log.WithField(configs.Component, "ETH2").Infof("Got event data: %v", string(msg.Data))
 
-		chkp, err := parseEventData(msg.Data)
+		chkp, err := unmarshalData(msg.Data, Checkpoint{})
 		if err != nil {
 			log.WithField(configs.Component, "ETH2").Errorf(parseDataError, err)
 		} else {
