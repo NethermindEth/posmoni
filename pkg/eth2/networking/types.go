@@ -12,6 +12,9 @@ type SubscribeOpts struct {
 	Subscriber Subscriber
 }
 
+type ValidatorBalanceList struct {
+	Data []ValidatorBalance `json:"data"`
+}
 type ValidatorBalance struct {
 	Index   string `json:"index"`
 	Balance string `json:"balance"`

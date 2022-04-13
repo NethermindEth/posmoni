@@ -17,7 +17,7 @@ func TestListen(t *testing.T) {
 	ch := make(chan Checkpoint)
 	defer close(ch)
 
-	endpoint, exists := os.LookupEnv("SSE_ENDPOINT")
+	endpoint, exists := os.LookupEnv("BC_ENDPOINT")
 	if !exists {
 		t.Fatal("SSE_ENDPOINT not set")
 	}

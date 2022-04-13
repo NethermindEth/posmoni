@@ -5,5 +5,5 @@ type Subscriber interface {
 }
 
 type BeaconAPI interface {
-	ValidatorBalances(stateID string, validatorIdxs []string) (ValidatorBalance, error)
+	ValidatorBalances(stateID string, validatorIdxs []string) ([]ValidatorBalance, error)
 }
