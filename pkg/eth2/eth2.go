@@ -22,6 +22,7 @@ type eth2Monitor struct {
 }
 
 func DefaultEth2Monitor() (*eth2Monitor, error) {
+	// notest
 	ormdb, err := gorm.Open(sqlite.Open("eth2_monitor.db"), &gorm.Config{})
 	if err != nil {
 		return nil, fmt.Errorf(SQLiteCreationError, err)
@@ -84,6 +85,7 @@ func (e *eth2Monitor) getValidatorBalance(chkps <-chan net.Checkpoint, validator
 	for c := range chkps {
 		log.WithFields(logFields).Infof("Got Checkpoint: %+v", c)
 
+		// New finalized checkpoint. Fetch validator balances
 		// Hardcoding head state for now
 		vbs, err := e.beaconClient.ValidatorBalances("head", validatorsIdxs)
 		if err != nil {
