@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"testing"
 
+	"github.com/NethermindEth/posgonitor/internal/utils"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 )
@@ -69,17 +70,6 @@ func setupInitTestCase(t *testing.T, tempDir string, tc *initTestCase) {
 
 func cleanInitTestCase() {
 	viper.Reset()
-}
-
-func checkErr(t *testing.T, descr string, isErr bool, err error) bool {
-	l := err == nil && isErr
-	r := err != nil && !isErr
-
-	if l || r {
-		t.Errorf("%s failed: %v", descr, err)
-		return false
-	}
-	return true
 }
 
 func TestInit(t *testing.T) {
@@ -147,7 +137,7 @@ func TestInit(t *testing.T) {
 			got, err := Init()
 
 			descr := fmt.Sprintf("Init() with yml %s", tc.yml)
-			if ok := checkErr(t, descr, tc.isError, err); !ok {
+			if ok := utils.CheckErr(t, descr, tc.isError, err); !ok {
 				t.FailNow()
 			}
 			assert.Equal(t, tc.want, got, descr)
@@ -240,7 +230,7 @@ func TestInit(t *testing.T) {
 			got, err := Init()
 
 			descr := fmt.Sprintf("Init() with env %s", tc.env)
-			if ok := checkErr(t, descr, tc.isError, err); !ok {
+			if ok := utils.CheckErr(t, descr, tc.isError, err); !ok {
 				t.FailNow()
 			}
 			assert.Equal(t, tc.want, got, descr)
