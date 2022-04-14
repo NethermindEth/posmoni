@@ -13,11 +13,13 @@ func Init() (cfg eth2Config, err error) {
 	viper.BindEnv(validators)
 	viper.BindEnv(consensus)
 
+	// TODO: Validate validators provided, it should be a valid validator index or an address
 	v, err := checkVariable(validators, NoValidatorsFoundError)
 	if err != nil {
 		return cfg, err
 	}
 
+	// TODO: Validate consensus nodes provided, it should be a valid endpoint
 	c, err := checkVariable(consensus, NoConsensusFoundError)
 	if err != nil {
 		return cfg, err
