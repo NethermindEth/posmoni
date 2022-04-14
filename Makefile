@@ -12,23 +12,33 @@ all: compile run ## build and run
 test:
 	@go test -timeout 30s ./...
 
-integration-tests:
-	@go test -timeout 7m -tags=integration ./...
-
 test-cover: ## tests with coverage
 	@mkdir -p coverage
 	@go test -coverprofile=coverage/coverage.out -covermode=count ./...
+	@go tool cover -html=coverage/coverage.out -o coverage/coverage.html
+
+codecov-test:
+	mkdir -p coverage
+	courtney/courtney -v -o coverage/coverage.out ./...
+	@go tool cover -html=coverage/coverage.out -o coverage/coverage.html
+
+integration-tests:
+	@go test -timeout 7m -tags=integration ./...
+
+integration-test-cover: ## tests with coverage
+	@mkdir -p coverage
+	@go test -timeout 7m -tags=integration -coverprofile=coverage/coverage.out -covermode=count ./...
+	@go tool cover -html=coverage/coverage.out -o coverage/coverage.html
+
+codecov-integration-test:
+	@mkdir -p coverage
+	@courtney/courtney -t "-timeout=7m" -t "-tags=integration" -v -o coverage/coverage.out ./...
 	@go tool cover -html=coverage/coverage.out -o coverage/coverage.html
 
 install-deps: ## Install some project dependencies
 	@git clone https://github.com/stdevMac/courtney
 	@(cd courtney && go get  ./... && go build courtney.go)
 	@go get ./...
-
-codecov-test:
-	mkdir -p coverage
-	courtney/courtney -v -o coverage/coverage.out ./...
-	@go tool cover -html=coverage/coverage.out -o coverage/coverage.html
 
 gomod_tidy:
 	@go mod tidy
