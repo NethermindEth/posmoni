@@ -38,7 +38,14 @@ var rootCmd = &cobra.Command{
 		sigChan := make(chan os.Signal, 1)
 		signal.Notify(sigChan, os.Interrupt)
 
-		doneChans := eth2.Monitor(false)
+		monitor, err := eth2.DefaultEth2Monitor()
+		if err != nil {
+			log.Fatal(err)
+		}
+		doneChans, err := monitor.Monitor(false)
+		if err != nil {
+			log.Fatal(err)
+		}
 
 		for range sigChan {
 			log.Info("Received SIGINT, exiting...")
