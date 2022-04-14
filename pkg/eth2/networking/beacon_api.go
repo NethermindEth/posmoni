@@ -31,6 +31,10 @@ func (bc BeaconClient) ValidatorBalances(stateID string, validatorIdxs []string)
 		return nil, fmt.Errorf(ReadBodyError, err)
 	}
 
+	if resp.StatusCode != 200 {
+		return nil, fmt.Errorf(BadResponseError, url, resp.StatusCode, string(contents))
+	}
+
 	var balances ValidatorBalanceList
 	balances, err = unmarshalData(contents, balances)
 	if err != nil {
