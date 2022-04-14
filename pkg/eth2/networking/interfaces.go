@@ -1,7 +1,7 @@
 package networking
 
 type Subscriber interface {
-	listen(url string, ch chan<- Checkpoint)
+	Listen(url string, ch chan<- Checkpoint)
 }
 
 type BeaconAPI interface {

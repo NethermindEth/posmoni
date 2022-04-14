@@ -11,7 +11,7 @@ type testSubscriber struct {
 	data map[string][]Checkpoint
 }
 
-func (s testSubscriber) listen(url string, ch chan<- Checkpoint) {
+func (s testSubscriber) Listen(url string, ch chan<- Checkpoint) {
 	for _, data := range s.data[url] {
 		ch <- data
 		//sleep to simulate a delay
@@ -20,6 +20,8 @@ func (s testSubscriber) listen(url string, ch chan<- Checkpoint) {
 }
 
 func TestSubscribe(t *testing.T) {
+	t.Parallel()
+
 	tcs := []struct {
 		name      string
 		endpoints []string
@@ -56,8 +58,6 @@ func TestSubscribe(t *testing.T) {
 
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
-
 			done := make(chan struct{})
 			sub := SubscribeOpts{
 				Endpoints:  tc.endpoints,

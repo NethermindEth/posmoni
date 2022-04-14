@@ -9,7 +9,7 @@ import (
 type SSESubscriber struct {
 }
 
-func (s SSESubscriber) listen(url string, ch chan<- Checkpoint) {
+func (s SSESubscriber) Listen(url string, ch chan<- Checkpoint) {
 	// notest
 	log.Info("Subscribing to: ", url)
 
@@ -38,7 +38,7 @@ func Subscribe(done <-chan struct{}, sub SubscribeOpts) <-chan Checkpoint {
 		//TODO: Add support for multiple endpoints. This only works well for one endpoint
 		for _, endpoint := range sub.Endpoints {
 			url := endpoint + sub.StreamURL
-			go sub.Subscriber.listen(url, c)
+			go sub.Subscriber.Listen(url, c)
 		}
 
 		<-done
