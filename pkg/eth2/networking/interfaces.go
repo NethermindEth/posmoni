@@ -5,5 +5,6 @@ type Subscriber interface {
 }
 
 type BeaconAPI interface {
+	SetEndpoints(endpoints []string)
 	ValidatorBalances(stateID string, validatorIdxs []string) ([]ValidatorBalance, error)
 }
