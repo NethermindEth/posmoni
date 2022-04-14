@@ -137,8 +137,8 @@ func TestInit(t *testing.T) {
 			got, err := Init()
 
 			descr := fmt.Sprintf("Init() with yml %s", tc.yml)
-			if ok := utils.CheckErr(t, descr, tc.isError, err); !ok {
-				t.FailNow()
+			if err = utils.CheckErr(descr, tc.isError, err); err != nil {
+				t.Fatal(err)
 			}
 			assert.Equal(t, tc.want, got, descr)
 
@@ -230,8 +230,8 @@ func TestInit(t *testing.T) {
 			got, err := Init()
 
 			descr := fmt.Sprintf("Init() with env %s", tc.env)
-			if ok := utils.CheckErr(t, descr, tc.isError, err); !ok {
-				t.FailNow()
+			if err = utils.CheckErr(descr, tc.isError, err); err != nil {
+				t.Fatal(err)
 			}
 			assert.Equal(t, tc.want, got, descr)
 		})

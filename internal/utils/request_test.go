@@ -59,7 +59,9 @@ func TestGetRequest(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			resp, err := GetRequest(tc.url, tc.retryDuration)
 			descr := fmt.Sprintf("DoRequest(%s)", tc.url)
-			CheckErr(t, descr, tc.isError, err)
+			if err = CheckErr(descr, tc.isError, err); err != nil {
+				t.Error(err)
+			}
 
 			if resp != nil {
 				defer resp.Body.Close()

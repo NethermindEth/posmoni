@@ -82,8 +82,8 @@ func TestUnmarshalData(t *testing.T) {
 				assert.Equal(t, tc.want, gotVB, descr)
 			}
 
-			if ok := utils.CheckErr(t, descr, tc.isError, err); !ok {
-				t.FailNow()
+			if err = utils.CheckErr(descr, tc.isError, err); err != nil {
+				t.Fatal(err)
 			}
 		})
 	}

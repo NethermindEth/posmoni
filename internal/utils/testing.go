@@ -1,14 +1,15 @@
 package utils
 
-import "testing"
+import (
+	"fmt"
+)
 
-func CheckErr(t *testing.T, descr string, isErr bool, err error) bool {
+func CheckErr(descr string, isErr bool, err error) error {
 	l := err == nil && isErr
 	r := err != nil && !isErr
 
 	if l || r {
-		t.Errorf("%s failed: %v", descr, err)
-		return false
+		return fmt.Errorf("%s failed, unexpected error value: %v", descr, err)
 	}
-	return true
+	return nil
 }
