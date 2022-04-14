@@ -14,7 +14,14 @@ type BeaconClient struct {
 	RetryDuration time.Duration
 }
 
-func (bc BeaconClient) ValidatorBalances(stateID string, validatorIdxs []string) ([]ValidatorBalance, error) {
+func (bc *BeaconClient) SetEndpoints(endpoints []string) {
+	// TODO: Update when support for several endpoints is made
+	// notest
+	// ^^ not test covered for now
+	bc.Endpoint = endpoints[0]
+}
+
+func (bc *BeaconClient) ValidatorBalances(stateID string, validatorIdxs []string) ([]ValidatorBalance, error) {
 	// notest
 	idxs := strings.Join(validatorIdxs, ",")
 	// http://<endpoint>/eth/v1/beacon/states/<stateID>/validator_balances?id=1,2,3

@@ -33,17 +33,17 @@ func TestValidatorBalances(t *testing.T) {
 		isError       bool
 	}{
 		{
-			"Empty endpoint",
+			"Test Case 1, empty endpoint",
 			"",
 			callArgs{
 				"head",
 				[]string{},
 			},
-			false,
+			true,
 			true,
 		},
 		{
-			"Bad endpoint",
+			"Test Case 2, bad endpoint",
 			"http://localhost:8080",
 			callArgs{
 				"head",
@@ -53,7 +53,7 @@ func TestValidatorBalances(t *testing.T) {
 			true,
 		},
 		{
-			"Good endpoint, head, empty validatorIdxs",
+			"Test Case 3, good endpoint, head, empty validatorIdxs",
 			endpoint,
 			callArgs{
 				"head",
@@ -63,7 +63,7 @@ func TestValidatorBalances(t *testing.T) {
 			false,
 		},
 		{
-			"Good endpoint, slot 100",
+			"Test Case 4, good endpoint, slot 100",
 			endpoint,
 			callArgs{
 				"100",
@@ -73,13 +73,23 @@ func TestValidatorBalances(t *testing.T) {
 			false,
 		},
 		{
-			"Good endpoint, head",
+			"Test Case 5, good endpoint, head",
 			endpoint,
 			callArgs{
 				"100",
 				[]string{"1", "2", "3"},
 			},
 			true,
+			false,
+		},
+		{
+			"Test Case 5, good endpoint, head, bad validators",
+			endpoint,
+			callArgs{
+				"100",
+				[]string{"1ad", "ttt", "0xwwww", "0x"},
+			},
+			false,
 			false,
 		},
 	}
