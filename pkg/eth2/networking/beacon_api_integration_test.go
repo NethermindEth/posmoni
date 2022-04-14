@@ -90,7 +90,7 @@ func TestValidatorBalances(t *testing.T) {
 				[]string{"1ad", "ttt", "0xwwww", "0x"},
 			},
 			false,
-			false,
+			true,
 		},
 	}
 
@@ -103,7 +103,9 @@ func TestValidatorBalances(t *testing.T) {
 
 			response, err := client.ValidatorBalances(tc.args.stateID, tc.args.validatorIdxs)
 			descr := fmt.Sprintf("ValidatorBalances(%s, %s) with endpoint %s", tc.args.stateID, tc.args.validatorIdxs, tc.url)
-			utils.CheckErr(t, descr, tc.isError, err)
+			if err = utils.CheckErr(descr, tc.isError, err); err != nil {
+				t.Error(err)
+			}
 
 			if tc.checkResponse {
 				assert.Len(t, response, len(tc.args.validatorIdxs), descr+" returned wrong number of validators")

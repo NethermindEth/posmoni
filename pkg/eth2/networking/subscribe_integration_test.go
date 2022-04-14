@@ -22,7 +22,7 @@ func TestListen(t *testing.T) {
 		t.Fatal("SSE_ENDPOINT not set")
 	}
 
-	go sub.listen(endpoint+FinalizedCkptTopic, ch)
+	go sub.Listen(endpoint+FinalizedCkptTopic, ch)
 
 	for event := range ch {
 		t.Logf("Checkpoint received: %+v", event)
