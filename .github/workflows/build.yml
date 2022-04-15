@@ -1,10 +1,11 @@
-name: posgonitor CI
+name: posgonitor build
 
 on:
   push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
+    branches: [ main, develop ]
+  pull_request: 
+    branches: [ main, develop ]
+  workflow_dispatch:
 
 jobs:
   build:
@@ -23,6 +24,9 @@ jobs:
     - name: Check Go fmt
       run: make gofmt
 
+    - name: Build
+      run: make compile
+
     - name: Check go mod status
       run: |
         make gomod_tidy
@@ -33,6 +37,3 @@ jobs:
           git diff "$GITHUB_SHA"
           exit 1
         fi
-
-    - name: Build
-      run: make build
