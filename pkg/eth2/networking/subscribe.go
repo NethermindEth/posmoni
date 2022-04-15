@@ -6,9 +6,23 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// SSESubscriber : Struct Subscriber interface implementation
 type SSESubscriber struct {
 }
 
+/*
+Listen :
+Subscribe to beacon chain SSE events and listen for new beacon chain checkpoints.
+
+params :-
+a. url string
+URL to subscribe to
+b. ch chan<- Checkpoint
+Channel to send new checkpoints to
+
+returns :-
+none
+*/
 func (s SSESubscriber) Listen(url string, ch chan<- Checkpoint) {
 	// notest
 	log.Info("Subscribing to: ", url)
@@ -31,11 +45,25 @@ func (s SSESubscriber) Listen(url string, ch chan<- Checkpoint) {
 	})
 }
 
+/*
+Subscribe :
+Setup subscriptions to beacon chain events using several beacon node endpoints.
+
+params :-
+a. done <- chan struct{}
+Channel to get stop listening signal from
+b. sub SubscribeOpts
+Subscription data and handlers
+
+returns :-
+a. <-chan Checkpoint
+Channel to get new checkpoints from
+*/
 func Subscribe(done <-chan struct{}, sub SubscribeOpts) <-chan Checkpoint {
 	c := make(chan Checkpoint)
 
 	go func() {
-		//TODO: Add support for multiple endpoints. This only works well for one endpoint
+		//TODO: Add support for multiple endpoints. This only works well for one endpoint. Probably consistency checks are needed.
 		for _, endpoint := range sub.Endpoints {
 			url := endpoint + sub.StreamURL
 			go sub.Subscriber.Listen(url, c)

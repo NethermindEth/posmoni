@@ -9,11 +9,25 @@ import (
 	"github.com/NethermindEth/posgonitor/internal/utils"
 )
 
+// BeaconClient : Struct BeaconAPI interface implementation
 type BeaconClient struct {
-	Endpoint      string
+	// Beacon node endpoint to connect to. Probably needs to change when support for several endpoints is added
+	Endpoint string
+	// Time between retries when a request fails
 	RetryDuration time.Duration
 }
 
+/*
+SetEndpoints :
+Set the endpoints for the beacon client implementation.
+
+params :-
+a. endpoints []string
+Endpoints to set for the beacon client
+
+returns :-
+none
+*/
 func (bc *BeaconClient) SetEndpoints(endpoints []string) {
 	// TODO: Update when support for several endpoints is made
 	// notest
@@ -21,6 +35,22 @@ func (bc *BeaconClient) SetEndpoints(endpoints []string) {
 	bc.Endpoint = endpoints[0]
 }
 
+/*
+ValidatorBalances :
+Get the validator balances for the given checkpoint.
+
+params :-
+a. stateID string
+Blockchain state ID from when to get the balances
+b. validatorIdxs []string
+Validator indexes to get the balances for
+
+returns :-
+a. []ValidatorBalance
+Validator balances fetched from the beacon node
+b. error
+Error if any
+*/
 func (bc *BeaconClient) ValidatorBalances(stateID string, validatorIdxs []string) ([]ValidatorBalance, error) {
 	// notest
 	idxs := strings.Join(validatorIdxs, ",")
