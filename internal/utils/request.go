@@ -8,6 +8,22 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+/*
+GetRequest :
+Make a GET request to the given URL. Uses exponential retries with backoff.
+
+params :-
+a. url string
+URL to make the request to
+b. retryDuration time.Duration
+Duration to wait between retries
+
+returns :-
+a. http.Response
+Response from the request
+b. error
+Error if any
+*/
 func GetRequest(url string, retryDuration time.Duration) (*http.Response, error) {
 	var response *http.Response
 
