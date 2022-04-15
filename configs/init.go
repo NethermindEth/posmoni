@@ -41,10 +41,12 @@ func InitConfig() {
 
 /*
 InitLogging :
-This function is responsible for :-
+This function is responsible for
 initializing the logging configurations
+
 params :-
 none
+
 returns :-
 none
 */
