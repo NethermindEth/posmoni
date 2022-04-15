@@ -14,15 +14,32 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// Middleware
+// Middleware for ETH2 validators monitoring
 type eth2Monitor struct {
-	repository     db.Repository
-	beaconClient   net.BeaconAPI
+	// Interface for data access
+	repository db.Repository
+	// Interface for Beacon chain API interaction
+	beaconClient net.BeaconAPI
+	// Configuration options for events subscriber
 	subscriberOpts net.SubscribeOpts
 }
 
+/*
+DefaultEth2Monitor :
+Factory for eth2Monitor with recommended settings.
+
+params :-
+none
+
+returns :-
+a. *eth2Monitor
+Monitor middleware intialized with default settings
+b. error
+Error if any
+*/
 func DefaultEth2Monitor() (*eth2Monitor, error) {
 	// notest
+	// Setup database
 	ormdb, err := gorm.Open(sqlite.Open("eth2_monitor.db"), &gorm.Config{})
 	if err != nil {
 		return nil, fmt.Errorf(SQLiteCreationError, err)
@@ -38,6 +55,22 @@ func DefaultEth2Monitor() (*eth2Monitor, error) {
 	}, nil
 }
 
+/*
+NewEth2Monitor :
+Factory for eth2Monitor.
+
+params :-
+a. r db.Repository
+Interface implementation for data access
+b. bc networking.BeaconAPI
+Interface implementation for Beacon chain API interaction
+c. so networking.SubscribeOpts
+Configuration options for events subscriber. Should include implementation for Subscriber interface.
+
+returns :-
+a. *eth2Monitor
+Monitor middleware intialized with desired settings
+*/
 func NewEth2Monitor(r db.Repository, bc net.BeaconAPI, so net.SubscribeOpts) *eth2Monitor {
 	return &eth2Monitor{
 		repository:     r,
@@ -46,6 +79,20 @@ func NewEth2Monitor(r db.Repository, bc net.BeaconAPI, so net.SubscribeOpts) *et
 	}
 }
 
+/*
+Monitor :
+Pipeline and entrypoint for validator monitoring.
+
+params :-
+a. handleCfg bool
+True if configuration setup (configuration file setup or enviroment variables setup) should be handled
+
+returns :-
+a. []chan struct{}
+List of channels to be closed when monitoring is done
+b. error
+Error if any
+*/
 func (e *eth2Monitor) Monitor(handleCfg bool) ([]chan struct{}, error) {
 	if handleCfg {
 		configs.InitConfig()
@@ -79,6 +126,19 @@ func (e *eth2Monitor) Monitor(handleCfg bool) ([]chan struct{}, error) {
 	return []chan struct{}{subDone}, nil
 }
 
+/*
+getValidatorBalance :
+Track validator balance and performance.
+
+params :-
+a. chkps <-chan networking.Checkpoint
+Channel to get new checkpoints from
+b. validatorsIdxs []string
+List of validator indexes to track
+
+returns :-
+none
+*/
 func (e *eth2Monitor) getValidatorBalance(chkps <-chan net.Checkpoint, validatorsIdxs []string) {
 	logFields := log.Fields{configs.Component: "ETH2 Monitor", "Method": "getValidatorBalance"}
 
