@@ -19,7 +19,7 @@ func TestListen(t *testing.T) {
 
 	endpoint, exists := os.LookupEnv("BC_ENDPOINT")
 	if !exists {
-		t.Fatal("SSE_ENDPOINT not set")
+		t.Fatal("BC_ENDPOINT not set")
 	}
 
 	go sub.Listen(endpoint+FinalizedCkptTopic, ch)
