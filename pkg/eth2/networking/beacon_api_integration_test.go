@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/NethermindEth/posgonitor/internal/utils"
+	"github.com/NethermindEth/posmoni/internal/utils"
 	"github.com/stretchr/testify/assert"
 )
 

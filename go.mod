@@ -1,4 +1,4 @@
-module github.com/NethermindEth/posgonitor
+module github.com/NethermindEth/posmoni
 
 go 1.18
 

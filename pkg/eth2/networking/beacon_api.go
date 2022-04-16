@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/NethermindEth/posgonitor/internal/utils"
+	"github.com/NethermindEth/posmoni/internal/utils"
 )
 
 // BeaconClient : Struct BeaconAPI interface implementation

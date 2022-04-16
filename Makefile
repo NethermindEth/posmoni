@@ -2,10 +2,10 @@
 
 compile: ## compile:
 	@mkdir -p build
-	@go build -o build/posgonitor cmd/main.go
+	@go build -o build/posmoni cmd/main.go
 
 run: ## run
-	@./build/posgonitor --config=config.yaml
+	@./build/posmoni --config=config.yaml
 
 all: compile run ## build and run
 

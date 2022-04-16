@@ -1,4 +1,4 @@
-name: posgonitor build
+name: posmoni build
 
 on:
   push:
@@ -9,7 +9,7 @@ on:
 
 jobs:
   build:
-    name: Build posgonitor
+    name: Build posmoni
     runs-on: ubuntu-latest
 
     steps:

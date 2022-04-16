@@ -1,4 +1,4 @@
-name: posgonitor unit tests
+name: posmoni unit tests
 on:
   push:
     branches: [ main, develop ]
@@ -28,7 +28,7 @@ jobs:
 
       - name: Run tests
         run: make codecov-test
-        
+
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v2
         with:

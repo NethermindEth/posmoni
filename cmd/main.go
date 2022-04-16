@@ -15,7 +15,7 @@ limitations under the License.
 */
 package main
 
-import "github.com/NethermindEth/posgonitor/cli"
+import "github.com/NethermindEth/posmoni/cli"
 
 func main() {
 	cli.Execute()

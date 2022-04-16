@@ -23,14 +23,14 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/NethermindEth/posgonitor/configs"
-	"github.com/NethermindEth/posgonitor/pkg/eth2"
+	"github.com/NethermindEth/posmoni/configs"
+	"github.com/NethermindEth/posmoni/pkg/eth2"
 	log "github.com/sirupsen/logrus"
 )
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
-	Use:   "posgonitor [flags]",
+	Use:   "posmoni [flags]",
 	Short: "A tool to monitor validators in a PoS network of chain, using official HTTP APIs.",
 	Long:  `A tool to monitor validators in a PoS network of chain, using official HTTP APIs.`,
 	Run: func(cmd *cobra.Command, args []string) {
@@ -70,5 +70,5 @@ func Execute() {
 func init() {
 	cobra.OnInitialize(configs.InitConfig)
 
-	rootCmd.PersistentFlags().StringVar(&configs.CfgFile, "config", "", "config file (default is $HOME/.posgonitor.yaml)")
+	rootCmd.PersistentFlags().StringVar(&configs.CfgFile, "config", "", "config file (default is $HOME/.posmoni.yaml)")
 }

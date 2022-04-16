@@ -25,10 +25,10 @@ func InitConfig() {
 		home, err := os.UserHomeDir()
 		cobra.CheckErr(err)
 
-		// Search config in home directory with name ".posgonitor" (without extension).
+		// Search config in home directory with name ".posmoni" (without extension).
 		viper.AddConfigPath(home)
 		viper.SetConfigType("yaml")
-		viper.SetConfigName(".posgonitor")
+		viper.SetConfigName(".posmoni")
 	}
 
 	viper.AutomaticEnv() // read in environment variables that match

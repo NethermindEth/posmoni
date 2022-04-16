@@ -5,9 +5,9 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/NethermindEth/posgonitor/configs"
-	"github.com/NethermindEth/posgonitor/pkg/eth2/db"
-	net "github.com/NethermindEth/posgonitor/pkg/eth2/networking"
+	"github.com/NethermindEth/posmoni/configs"
+	"github.com/NethermindEth/posmoni/pkg/eth2/db"
+	net "github.com/NethermindEth/posmoni/pkg/eth2/networking"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 

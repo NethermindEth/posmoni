@@ -1,7 +1,7 @@
 package networking
 
 import (
-	"github.com/NethermindEth/posgonitor/configs"
+	"github.com/NethermindEth/posmoni/configs"
 	sse "github.com/r3labs/sse/v2"
 	log "github.com/sirupsen/logrus"
 )

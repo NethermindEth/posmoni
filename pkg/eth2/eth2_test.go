@@ -5,9 +5,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/NethermindEth/posgonitor/internal/utils"
-	"github.com/NethermindEth/posgonitor/pkg/eth2/db"
-	net "github.com/NethermindEth/posgonitor/pkg/eth2/networking"
+	"github.com/NethermindEth/posmoni/internal/utils"
+	"github.com/NethermindEth/posmoni/pkg/eth2/db"
+	net "github.com/NethermindEth/posmoni/pkg/eth2/networking"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"gorm.io/driver/sqlite"

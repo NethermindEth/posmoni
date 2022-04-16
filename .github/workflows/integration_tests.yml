@@ -1,4 +1,4 @@
-name: posgonitor integration tests
+name: posmoni integration tests
 on:
   push:
     branches: [ main, develop ]
