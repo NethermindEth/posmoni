@@ -22,7 +22,7 @@ Error if any
 */
 func Init() (cfg eth2Config, err error) {
 	fmt.Println("Initializing configuration")
-	viper.SetEnvPrefix("PGM")
+	viper.SetEnvPrefix("PM")
 	viper.BindEnv(validators)
 	viper.BindEnv(consensus)
 

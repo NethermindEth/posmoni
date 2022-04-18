@@ -61,7 +61,7 @@ func setupInitTestCase(t *testing.T, tempDir string, tc *initTestCase) {
 			t.Fatalf("got an error reading config file. Error: %s", err)
 		}
 	} else {
-		viper.SetEnvPrefix("PGM")
+		viper.SetEnvPrefix("PM")
 		for k, v := range tc.env {
 			t.Setenv(k, v)
 		}
