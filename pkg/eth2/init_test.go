@@ -150,8 +150,8 @@ func TestInit(t *testing.T) {
 		{
 			yml: skip,
 			env: map[string]string{
-				"PGM_VALIDATORS": "123123,0x1414fa980b",
-				"PGM_CONSENSUS":  "http://153.168.127.111:5052,http://154.168.127.221:5052",
+				"PM_VALIDATORS": "123123,0x1414fa980b",
+				"PM_CONSENSUS":  "http://153.168.127.111:5052,http://154.168.127.221:5052",
 			},
 			want: eth2Config{
 				Validators: []string{"123123", "0x1414fa980b"},
@@ -162,8 +162,8 @@ func TestInit(t *testing.T) {
 		{
 			yml: skip,
 			env: map[string]string{
-				"PGM_VALIDATORS": "0x1414fa980b",
-				"PGM_CONSENSUS":  "http://153.168.127.111:5052",
+				"PM_VALIDATORS": "0x1414fa980b",
+				"PM_CONSENSUS":  "http://153.168.127.111:5052",
 			},
 			want: eth2Config{
 				Validators: []string{"0x1414fa980b"},
@@ -174,8 +174,8 @@ func TestInit(t *testing.T) {
 		{
 			yml: skip,
 			env: map[string]string{
-				"PGM_VALIDATORS": "",
-				"PGM_CONSENSUS":  "http://153.168.127.111:5052",
+				"PM_VALIDATORS": "",
+				"PM_CONSENSUS":  "http://153.168.127.111:5052",
 			},
 			want:    eth2Config{},
 			isError: true,
@@ -183,7 +183,7 @@ func TestInit(t *testing.T) {
 		{
 			yml: skip,
 			env: map[string]string{
-				"PGM_CONSENSUS": "http://153.168.127.111:5052",
+				"PM_CONSENSUS": "http://153.168.127.111:5052",
 			},
 			want:    eth2Config{},
 			isError: true,
@@ -191,7 +191,7 @@ func TestInit(t *testing.T) {
 		{
 			yml: skip,
 			env: map[string]string{
-				"PGM_VALIDATORS": "0x1414fa980b",
+				"PM_VALIDATORS": "0x1414fa980b",
 			},
 			want:    eth2Config{},
 			isError: true,
@@ -199,8 +199,8 @@ func TestInit(t *testing.T) {
 		{
 			yml: skip,
 			env: map[string]string{
-				"PGM_VALIDATORS": "0x1414fa980b",
-				"PGM_CONSENSUS":  "",
+				"PM_VALIDATORS": "0x1414fa980b",
+				"PM_CONSENSUS":  "",
 			},
 			want:    eth2Config{},
 			isError: true,
@@ -208,8 +208,8 @@ func TestInit(t *testing.T) {
 		{
 			yml: skip,
 			env: map[string]string{
-				"PGM_VALIDATORS": "",
-				"PGM_CONSENSUS":  "",
+				"PM_VALIDATORS": "",
+				"PM_CONSENSUS":  "",
 			},
 			want:    eth2Config{},
 			isError: true,

@@ -417,8 +417,8 @@ func TestMonitor(t *testing.T) {
 				},
 				handleCfg: true,
 				env: map[string]string{
-					"PGM_VALIDATORS": "1,2,3",
-					"PGM_CONSENSUS":  "Endpoint1",
+					"PM_VALIDATORS": "1,2,3",
+					"PM_CONSENSUS":  "Endpoint1",
 				},
 			},
 			want: []db.Validator{
