@@ -28,8 +28,22 @@ type ValidatorBalance struct {
 	Balance string `json:"balance"`
 }
 
+// HealthResponse : Struct Represent response information from 'http://<endpoint>/eth/v1/beacon/health' API call
 type HealthResponse struct {
-	endpoint string
-	healthy  bool
-	err      error
+	Endpoint string
+	Healthy  bool
+	Error    error
+}
+
+// SyncingStatusResponse : Struct Represent response body from 'http://<endpoint>/eth/v1/node/syncing' API call
+type SyncingStatusResponse struct {
+	Data SyncingStatus `json:"data"`
+}
+
+// SyncingStatus : Struct Represent response data from 'http://<endpoint>/eth/v1/node/syncing' API call
+type SyncingStatus struct {
+	HeadSlot     string `json:"head_slot"`
+	SyncDistance string `json:"sync_distance"`
+	IsSyncing    bool   `json:"is_syncing"`
+	Error        error
 }

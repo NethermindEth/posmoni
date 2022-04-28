@@ -30,14 +30,14 @@ func TestHealth(t *testing.T) {
 		{
 			"Test Case 2, empty endpoints, request failed",
 			[]HealthResponse{
-				{healthy: false, err: errors.New("")},
+				{Healthy: false, Error: errors.New("")},
 			},
 			[]handler{nil},
 		},
 		{
 			"Test Case 3, bad endpoint, 400 response",
 			[]HealthResponse{
-				{healthy: false, err: errors.New("")},
+				{Healthy: false, Error: errors.New("")},
 			},
 			[]handler{
 				func(rw http.ResponseWriter, req *http.Request) {
@@ -48,7 +48,7 @@ func TestHealth(t *testing.T) {
 		{
 			"Test Case 4, good endpoint, 200 response",
 			[]HealthResponse{
-				{healthy: true, err: nil},
+				{Healthy: true, Error: nil},
 			},
 			[]handler{
 				func(rw http.ResponseWriter, req *http.Request) {
@@ -59,7 +59,7 @@ func TestHealth(t *testing.T) {
 		{
 			"Test Case 5, Node is syncing but can serve incomplete data, 206 response",
 			[]HealthResponse{
-				{healthy: false, err: errors.New("")},
+				{Healthy: false, Error: errors.New("")},
 			},
 			[]handler{
 				func(rw http.ResponseWriter, req *http.Request) {
@@ -70,7 +70,7 @@ func TestHealth(t *testing.T) {
 		{
 			"Test Case 6, Node not initialized or having issues, 503 response",
 			[]HealthResponse{
-				{healthy: false, err: errors.New("")},
+				{Healthy: false, Error: errors.New("")},
 			},
 			[]handler{
 				func(rw http.ResponseWriter, req *http.Request) {
@@ -81,9 +81,9 @@ func TestHealth(t *testing.T) {
 		{
 			"Test Case 7, good endpoints, all healthy",
 			[]HealthResponse{
-				{healthy: true, err: nil},
-				{healthy: true, err: nil},
-				{healthy: true, err: nil},
+				{Healthy: true, Error: nil},
+				{Healthy: true, Error: nil},
+				{Healthy: true, Error: nil},
 			},
 			[]handler{
 				func(rw http.ResponseWriter, req *http.Request) {
@@ -117,10 +117,10 @@ func TestHealth(t *testing.T) {
 
 			mask := make(map[int]bool)
 			for _, g := range got {
-				if !g.healthy && g.err == nil {
+				if !g.Healthy && g.Error == nil {
 					t.Error("Unhealthy endpoint returned nil error")
 					continue
-				} else if g.healthy && g.err != nil {
+				} else if g.Healthy && g.Error != nil {
 					t.Error("Healthy endpoint returned non-nil error")
 					continue
 				}
@@ -130,7 +130,7 @@ func TestHealth(t *testing.T) {
 					if mask[i] {
 						continue
 					}
-					if g.healthy == w.healthy {
+					if g.Healthy == w.Healthy {
 						mask[i] = true
 						matched = true
 						break
@@ -138,7 +138,162 @@ func TestHealth(t *testing.T) {
 				}
 
 				if !matched {
-					t.Errorf("Got %v, want %v", got, tc.want)
+					t.Errorf("Got %+v, want %+v", got, tc.want)
+				}
+			}
+		})
+	}
+}
+
+func TestSyncStatus(t *testing.T) {
+	t.Parallel()
+
+	tcs := []struct {
+		name     string
+		want     []SyncingStatus
+		handlers []handler
+	}{
+		{
+			"Test Case 1, no endpoints, empty",
+			nil,
+			nil,
+		},
+		{
+			"Test Case 2, empty endpoints, request failed",
+			[]SyncingStatus{{Error: errors.New("")}},
+			[]handler{nil},
+		},
+		{
+			"Test Case 3, bad endpoint, 400 response",
+			[]SyncingStatus{{Error: errors.New("")}},
+			[]handler{
+				func(rw http.ResponseWriter, req *http.Request) {
+					rw.WriteHeader(http.StatusBadRequest)
+				},
+			},
+		},
+		{
+			"Test Case 4, good endpoint, empty response body",
+			[]SyncingStatus{{Error: errors.New("")}},
+			[]handler{
+				func(rw http.ResponseWriter, req *http.Request) {
+					rw.WriteHeader(http.StatusOK)
+					rw.Write([]byte(""))
+				},
+			},
+		},
+		{
+			"Test Case 4, good endpoint, bad response body",
+			[]SyncingStatus{{Error: errors.New("")}},
+			[]handler{
+				func(rw http.ResponseWriter, req *http.Request) {
+					rw.WriteHeader(http.StatusOK)
+					rw.Write([]byte("312312"))
+				},
+			},
+		},
+		{
+			"Test Case 5, good endpoint, bad response body, bad json",
+			[]SyncingStatus{{Error: errors.New("")}},
+			[]handler{
+				func(rw http.ResponseWriter, req *http.Request) {
+					rw.WriteHeader(http.StatusOK)
+					rw.Write([]byte("{"))
+				},
+			},
+		},
+		{
+			"Test Case 6, good endpoint, not synced",
+			[]SyncingStatus{{IsSyncing: true}},
+			[]handler{
+				func(rw http.ResponseWriter, req *http.Request) {
+					rw.WriteHeader(http.StatusOK)
+					rw.Write([]byte(`{"data":{
+						"head_slot": "1",
+						"sync_distance": "1",
+						"is_syncing": true
+					}}`))
+				},
+			},
+		},
+		{
+			"Test Case 7, good endpoint, synced",
+			[]SyncingStatus{{IsSyncing: false}},
+			[]handler{
+				func(rw http.ResponseWriter, req *http.Request) {
+					rw.WriteHeader(http.StatusOK)
+					rw.Write([]byte(`{"data":{
+						"head_slot": "1",
+						"sync_distance": "1",
+						"is_syncing": false
+					}}`))
+				},
+			},
+		},
+		{
+			"Test Case 8, good endpoints, mixed sync status",
+			[]SyncingStatus{{IsSyncing: false}, {IsSyncing: true}, {IsSyncing: false}},
+			[]handler{
+				func(rw http.ResponseWriter, req *http.Request) {
+					rw.WriteHeader(http.StatusOK)
+					rw.Write([]byte(`{"data":{
+						"head_slot": "1",
+						"sync_distance": "1",
+						"is_syncing": false
+					}}`))
+				},
+				func(rw http.ResponseWriter, req *http.Request) {
+					rw.WriteHeader(http.StatusOK)
+					rw.Write([]byte(`{"data":{
+						"head_slot": "1",
+						"sync_distance": "1",
+						"is_syncing": true
+					}}`))
+				},
+				func(rw http.ResponseWriter, req *http.Request) {
+					rw.WriteHeader(http.StatusOK)
+					rw.Write([]byte(`{"data":{
+						"head_slot": "1",
+						"sync_distance": "1",
+						"is_syncing": false
+					}}`))
+				},
+			},
+		},
+	}
+
+	for _, tc := range tcs {
+		t.Run(tc.name, func(t *testing.T) {
+			endpoints := make([]string, 0)
+
+			for _, handler := range tc.handlers {
+				srv := setupServer(handler)
+				defer srv.Close()
+				endpoints = append(endpoints, srv.URL)
+			}
+
+			client := BeaconClient{
+				RetryDuration: time.Millisecond * 100,
+			}
+
+			got := client.SyncStatus(endpoints)
+
+			mask := make(map[int]bool)
+			for _, g := range got {
+				matched := false
+				for i, w := range tc.want {
+					if mask[i] {
+						continue
+					}
+					if g.IsSyncing == w.IsSyncing && (g.Error != nil && w.Error != nil || g.Error == nil && w.Error == nil) {
+						mask[i] = true
+						matched = true
+						break
+					}
+				}
+
+				if !matched {
+					t.Errorf("Got %+v, want %+v", got, tc.want)
 				}
 			}
 		})

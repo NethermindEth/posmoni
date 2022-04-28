@@ -84,7 +84,7 @@ func (bc *BeaconClient) ValidatorBalances(stateID string, validatorIdxs []string
 
 /*
 Health :
-Health check to the given endpoints using the API method '/eth/v1/beacon/health'
+Health check to the given endpoints using the API method '/eth/v1/beacon/health'.
 
 params :-
 a. endpoints []string
@@ -108,19 +108,19 @@ func (bc *BeaconClient) Health(endpoints []string) []HealthResponse {
 			url := fmt.Sprintf("%s%s", endpoint, "/eth/v1/beacon/health")
 			resp, err := utils.GetRequest(url, bc.RetryDuration)
 			if err != nil {
-				ch <- HealthResponse{endpoint: endpoint, healthy: false, err: err}
+				ch <- HealthResponse{Endpoint: endpoint, Healthy: false, Error: err}
 				return
 			}
 
 			switch resp.StatusCode {
 			case 200:
-				ch <- HealthResponse{endpoint: endpoint, healthy: true, err: nil}
+				ch <- HealthResponse{Endpoint: endpoint, Healthy: true, Error: nil}
 			case 206:
-				ch <- HealthResponse{endpoint: endpoint, healthy: false, err: fmt.Errorf(BadResponseError, url, resp.StatusCode, "Node is syncing but can serve incomplete data")}
+				ch <- HealthResponse{Endpoint: endpoint, Healthy: false, Error: fmt.Errorf(BadResponseError, url, resp.StatusCode, "Node is syncing but can serve incomplete data")}
 			case 503:
-				ch <- HealthResponse{endpoint: endpoint, healthy: false, err: fmt.Errorf(BadResponseError, url, resp.StatusCode, "Node not initialized or having issues")}
+				ch <- HealthResponse{Endpoint: endpoint, Healthy: false, Error: fmt.Errorf(BadResponseError, url, resp.StatusCode, "Node not initialized or having issues")}
 			default:
-				ch <- HealthResponse{endpoint: endpoint, healthy: false, err: fmt.Errorf(BadResponseError, url, resp.StatusCode, "")}
+				ch <- HealthResponse{Endpoint: endpoint, Healthy: false, Error: fmt.Errorf(BadResponseError, url, resp.StatusCode, "")}
 			}
 
 		}(endpoint)
@@ -129,6 +129,82 @@ func (bc *BeaconClient) Health(endpoints []string) []HealthResponse {
 	responses := make([]HealthResponse, 0)
 	for i := 0; i < len(endpoints); i++ {
 		responses = append(responses, <-ch)
+	}
+
+	return responses
+}
+
+/*
+SyncStatus :
+Check sync status of the given endpoints using the API method '/eth/v1/node/syncing'.
+
+params :-
+a. endpoints []string
+Endpoints to check
+
+returns :-
+a. []HealthResponse
+Health responses from the given endpoints
+*/
+func (bc *BeaconClient) SyncStatus(endpoints []string) []SyncingStatus {
+	if len(endpoints) == 0 {
+		log.Warn("No endpoints provided for health check")
+		return nil
+	}
+
+	type status struct {
+		SyncingStatus
+		err error
+	}
+
+	ch := make(chan status, len(endpoints))
+	defer close(ch)
+
+	for _, endpoint := range endpoints {
+		go func(endpoint string) {
+			url := fmt.Sprintf("%s%s", endpoint, "/eth/v1/node/syncing")
+			resp, err := utils.GetRequest(url, bc.RetryDuration)
+			if err != nil {
+				ch <- status{err: err}
+				return
+			}
+
+			defer resp.Body.Close()
+			contents, err := ioutil.ReadAll(resp.Body)
+			if err != nil {
+				ch <- status{err: fmt.Errorf(ReadBodyError, err)}
+				return
+			}
+
+			if resp.StatusCode != 200 {
+				ch <- status{err: fmt.Errorf(BadResponseError, url, resp.StatusCode, string(contents))}
+				return
+			}
+
+			var ssr SyncingStatusResponse
+			ssr, err = unmarshalData(contents, ssr)
+			if err != nil {
+				ch <- status{err: err}
+				return
+			}
+
+			ch <- status{SyncingStatus: ssr.Data, err: nil}
+
+		}(endpoint)
+	}
+
+	responses := make([]SyncingStatus, 0)
+	for i := 0; i < len(endpoints); i++ {
+		resp := <-ch
+		ss := SyncingStatus{}
+
+		if resp.err != nil {
+			ss.Error = resp.err
+		} else {
+			ss = resp.SyncingStatus
+		}
+
+		responses = append(responses, ss)
 	}
 
 	return responses

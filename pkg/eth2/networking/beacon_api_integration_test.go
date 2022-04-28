@@ -152,14 +152,14 @@ func TestHealthIntegration(t *testing.T) {
 			"Test Case 2, bad endpoint",
 			[]string{"http://localhost:8080"},
 			[]HealthResponse{
-				{endpoint: "http://localhost:8080", healthy: false, err: errors.New("")},
+				{Endpoint: "http://localhost:8080", Healthy: false, Error: errors.New("")},
 			},
 		},
 		{
 			"Test Case 3, good endpoint",
 			bceps[0:1],
 			[]HealthResponse{
-				{endpoint: bceps[0], healthy: true, err: nil},
+				{Endpoint: bceps[0], Healthy: true, Error: nil},
 			},
 		},
 		{
@@ -178,7 +178,7 @@ func TestHealthIntegration(t *testing.T) {
 			if len(tc.want) == 0 {
 				// If want is empty then create a want list with good responses with the same length as the urls list
 				for i := 0; i < len(tc.urls); i++ {
-					tc.want = append(tc.want, HealthResponse{endpoint: tc.urls[i], healthy: true, err: nil})
+					tc.want = append(tc.want, HealthResponse{Endpoint: tc.urls[i], Healthy: true, Error: nil})
 				}
 			}
 
@@ -187,16 +187,78 @@ func TestHealthIntegration(t *testing.T) {
 
 			require.Equal(t, len(tc.want), len(got), descr+" returned wrong number of endpoints")
 			for i := 0; i < len(tc.want); i++ {
-				if !got[i].healthy && got[i].err == nil {
+				if !got[i].Healthy && got[i].Error == nil {
 					t.Error("Unhealthy endpoint returned nil error")
 					continue
-				} else if got[i].healthy && got[i].err != nil {
+				} else if got[i].Healthy && got[i].Error != nil {
 					t.Error("Healthy endpoint returned non-nil error")
 					continue
 				}
 
-				if got[i].endpoint != tc.want[i].endpoint && got[i].healthy != tc.want[i].healthy && (got[i].err != nil && tc.want[i].err != nil) {
-					t.Error(descr + " returned bad response for " + tc.want[i].endpoint + " endpoint")
+				if got[i].Endpoint != tc.want[i].Endpoint && got[i].Healthy != tc.want[i].Healthy && (got[i].Error == nil && tc.want[i].Error == nil || got[i].Error != nil && tc.want[i].Error != nil) {
+					t.Error(descr + " returned bad response for " + tc.want[i].Endpoint + " endpoint")
+				}
+			}
+		})
+	}
+}
+
+func TestSyncStatusIntegration(t *testing.T) {
+	t.Parallel()
+
+	raw, exists := os.LookupEnv("PM_BC_ENDPOINTS")
+	if !exists {
+		t.Fatal("PM_BC_ENDPOINTS not set")
+	}
+	bceps := strings.Split(raw, ",")
+
+	tcs := []struct {
+		name string
+		urls []string
+		want []SyncingStatus
+	}{
+		{
+			"Test Case 1, empty endpoints",
+			[]string{},
+			nil,
+		},
+		{
+			"Test Case 2, bad endpoint",
+			[]string{"http://localhost:8080"},
+			[]SyncingStatus{{Error: errors.New("")}},
+		},
+		{
+			"Test Case 3, good endpoint",
+			bceps[0:1],
+			[]SyncingStatus{{IsSyncing: false}},
+		},
+		{
+			"Test Case 4, good endpoints",
+			bceps,
+			[]SyncingStatus{},
+		},
+	}
+
+	for _, tc := range tcs {
+		t.Run(tc.name, func(t *testing.T) {
+			client := BeaconClient{
+				RetryDuration: time.Second,
+			}
+
+			if len(tc.want) == 0 {
+				// If want is empty then create a want list with good responses with the same length as the urls list
+				for i := 0; i < len(tc.urls); i++ {
+					tc.want = append(tc.want, SyncingStatus{IsSyncing: false})
+				}
+			}
+
+			got := client.SyncStatus(tc.urls)
+			descr := fmt.Sprintf("SyncStatus(%v)", tc.urls)
+
+			require.Equal(t, len(tc.want), len(got), descr+" returned wrong number of endpoints")
+			for i := 0; i < len(tc.want); i++ {
+				if got[i].IsSyncing != tc.want[i].IsSyncing && (got[i].Error == nil && tc.want[i].Error == nil || got[i].Error != nil && tc.want[i].Error != nil) {
+					t.Errorf(descr+" got bad response %+v", got[i])
 				}
 			}
 		})
