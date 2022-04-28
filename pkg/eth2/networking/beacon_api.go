@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/NethermindEth/posmoni/internal/utils"
+	log "github.com/sirupsen/logrus"
 )
 
 // BeaconClient : Struct BeaconAPI interface implementation
@@ -79,4 +80,56 @@ func (bc *BeaconClient) ValidatorBalances(stateID string, validatorIdxs []string
 	}
 
 	return balances.Data, nil
+}
+
+/*
+Health :
+Health check to the given endpoints using the API method '/eth/v1/beacon/health'
+
+params :-
+a. endpoints []string
+Endpoints to check
+
+returns :-
+a. []HealthResponse
+Health responses from the given endpoints
+*/
+func (bc *BeaconClient) Health(endpoints []string) []HealthResponse {
+	if len(endpoints) == 0 {
+		log.Warn("No endpoints provided for health check")
+		return nil
+	}
+
+	ch := make(chan HealthResponse, len(endpoints))
+	defer close(ch)
+
+	for _, endpoint := range endpoints {
+		go func(endpoint string) {
+			url := fmt.Sprintf("%s%s", endpoint, "/eth/v1/beacon/health")
+			resp, err := utils.GetRequest(url, bc.RetryDuration)
+			if err != nil {
+				ch <- HealthResponse{endpoint: endpoint, healthy: false, err: err}
+				return
+			}
+
+			switch resp.StatusCode {
+			case 200:
+				ch <- HealthResponse{endpoint: endpoint, healthy: true, err: nil}
+			case 206:
+				ch <- HealthResponse{endpoint: endpoint, healthy: false, err: fmt.Errorf(BadResponseError, url, resp.StatusCode, "Node is syncing but can serve incomplete data")}
+			case 503:
+				ch <- HealthResponse{endpoint: endpoint, healthy: false, err: fmt.Errorf(BadResponseError, url, resp.StatusCode, "Node not initialized or having issues")}
+			default:
+				ch <- HealthResponse{endpoint: endpoint, healthy: false, err: fmt.Errorf(BadResponseError, url, resp.StatusCode, "")}
+			}
+
+		}(endpoint)
+	}
+
+	responses := make([]HealthResponse, 0)
+	for i := 0; i < len(endpoints); i++ {
+		responses = append(responses, <-ch)
+	}
+
+	return responses
 }

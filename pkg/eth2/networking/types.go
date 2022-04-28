@@ -27,3 +27,9 @@ type ValidatorBalance struct {
 	Index   string `json:"index"`
 	Balance string `json:"balance"`
 }
+
+type HealthResponse struct {
+	endpoint string
+	healthy  bool
+	err      error
+}
