@@ -38,11 +38,11 @@ var rootCmd = &cobra.Command{
 		sigChan := make(chan os.Signal, 1)
 		signal.Notify(sigChan, os.Interrupt)
 
-		monitor, err := eth2.DefaultEth2Monitor()
+		monitor, err := eth2.DefaultEth2Monitor(eth2.ConfigOpts{HandleCfg: false})
 		if err != nil {
 			log.Fatal(err)
 		}
-		doneChans, err := monitor.Monitor(false)
+		doneChans, err := monitor.Monitor()
 		if err != nil {
 			log.Fatal(err)
 		}

@@ -1,6 +1,7 @@
 package eth2
 
 import (
+	"errors"
 	"fmt"
 	"strconv"
 	"time"
@@ -22,6 +23,8 @@ type eth2Monitor struct {
 	beaconClient net.BeaconAPI
 	// Configuration options for events subscriber
 	subscriberOpts net.SubscribeOpts
+	// Configuration data for eth2Monitor
+	config eth2Config
 }
 
 /*
@@ -29,7 +32,8 @@ DefaultEth2Monitor :
 Factory for eth2Monitor with recommended settings.
 
 params :-
-none
+a. opts ConfigOpts
+Monitor configuration options
 
 returns :-
 a. *eth2Monitor
@@ -37,7 +41,7 @@ Monitor middleware intialized with default settings
 b. error
 Error if any
 */
-func DefaultEth2Monitor() (*eth2Monitor, error) {
+func DefaultEth2Monitor(opts ConfigOpts) (*eth2Monitor, error) {
 	// notest
 	// Setup database
 	ormdb, err := gorm.Open(sqlite.Open("eth2_monitor.db"), &gorm.Config{})
@@ -45,14 +49,21 @@ func DefaultEth2Monitor() (*eth2Monitor, error) {
 		return nil, fmt.Errorf(SQLiteCreationError, err)
 	}
 
-	return &eth2Monitor{
+	monitor := &eth2Monitor{
 		repository:   &db.SQLiteRepository{DB: ormdb},
 		beaconClient: &net.BeaconClient{RetryDuration: time.Minute},
 		subscriberOpts: net.SubscribeOpts{
 			StreamURL:  net.FinalizedCkptTopic,
 			Subscriber: &net.SSESubscriber{},
 		},
-	}, nil
+	}
+
+	err = monitor.setup(opts)
+	if err != nil {
+		return nil, fmt.Errorf(SetupError, err)
+	}
+
+	return monitor, nil
 }
 
 /*
@@ -66,17 +77,75 @@ b. bc networking.BeaconAPI
 Interface implementation for Beacon chain API interaction
 c. so networking.SubscribeOpts
 Configuration options for events subscriber. Should include implementation for Subscriber interface.
+d. opts ConfigOpts
+Monitor configuration options
 
 returns :-
 a. *eth2Monitor
 Monitor middleware intialized with desired settings
 */
-func NewEth2Monitor(r db.Repository, bc net.BeaconAPI, so net.SubscribeOpts) *eth2Monitor {
-	return &eth2Monitor{
+func NewEth2Monitor(r db.Repository, bc net.BeaconAPI, so net.SubscribeOpts, opts ConfigOpts) (*eth2Monitor, error) {
+	monitor := &eth2Monitor{
 		repository:     r,
 		beaconClient:   bc,
 		subscriberOpts: so,
 	}
+
+	err := monitor.setup(opts)
+	if err != nil {
+		return nil, fmt.Errorf(SetupError, err)
+	}
+
+	return monitor, nil
+}
+
+/*
+Setup :
+Handle eth2Monitor configuration.
+params :-
+a. handleCfg bool
+True if configuration setup (configuration file setup or enviroment variables setup) should be handled
+b. config *eth2Config
+Configuration data. Should be used when is not desired to use config file or enviroment variables to get configuration data.
+
+returns :-
+a. error
+Error if any
+*/
+func (e *eth2Monitor) setup(opts ConfigOpts) error {
+	if opts.Config != nil {
+		if len(opts.Config.Consensus) == 0 {
+			return errors.New(NoConsensusFoundError)
+		}
+
+		e.config = *opts.Config
+	} else {
+		if opts.HandleCfg {
+			configs.InitConfig()
+		}
+
+		cfg, err := Init()
+		if err != nil {
+			fmt.Println(err)
+			return err
+		}
+		e.config = cfg
+	}
+
+	// setup beacon nodes endpoints
+	e.subscriberOpts.Endpoints = e.config.Consensus
+	e.beaconClient.SetEndpoints(e.config.Consensus)
+
+	// setup logger
+	configs.InitLogging()
+
+	log.Debugf("Configuration object: %+v", e.config)
+
+	if err := e.repository.Migrate(); err != nil {
+		return fmt.Errorf(MigrationError, err)
+	}
+
+	return nil
 }
 
 /*
@@ -93,34 +162,11 @@ List of channels to be closed when monitoring is done
 b. error
 Error if any
 */
-func (e *eth2Monitor) Monitor(handleCfg bool) ([]chan struct{}, error) {
-	if handleCfg {
-		configs.InitConfig()
-	}
-
-	cfg, err := Init()
-	if err != nil {
-		fmt.Println(err)
-		return nil, err
-	}
-
-	// setup beacon nodes endpoints
-	e.subscriberOpts.Endpoints = cfg.Consensus
-	e.beaconClient.SetEndpoints(cfg.Consensus)
-
-	// setup logger
-	configs.InitLogging()
-
-	log.Debugf("Configuration object: %+v", cfg)
-
-	if err = e.repository.Migrate(); err != nil {
-		return nil, fmt.Errorf(MigrationError, err)
-	}
-
+func (e *eth2Monitor) Monitor() ([]chan struct{}, error) {
 	subDone := make(chan struct{})
 	chkps := net.Subscribe(subDone, e.subscriberOpts)
 
-	go e.getValidatorBalance(chkps, cfg.Validators)
+	go e.getValidatorBalance(chkps, e.config.Validators)
 	go e.setupAlerts(chkps)
 
 	return []chan struct{}{subDone}, nil
@@ -198,5 +244,9 @@ func (e *eth2Monitor) getValidatorBalance(chkps <-chan net.Checkpoint, validator
 }
 
 func (e *eth2Monitor) setupAlerts(<-chan net.Checkpoint) {
+
+}
+
+func (e *eth2Monitor) TrackSync(endpoints []string) {
 
 }

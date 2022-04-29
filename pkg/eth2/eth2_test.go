@@ -1,6 +1,7 @@
 package eth2
 
 import (
+	"errors"
 	"fmt"
 	"testing"
 	"time"
@@ -16,12 +17,13 @@ import (
 
 // Mock of BeaconAPI.
 type TestBeaconClient struct {
-	data    [][]net.ValidatorBalance
-	current int
+	data      [][]net.ValidatorBalance
+	current   int
+	endpoints []string
 }
 
 func (tbc *TestBeaconClient) SetEndpoints(endpoints []string) {
-	// do nothing
+	tbc.endpoints = endpoints
 }
 
 func (tbc *TestBeaconClient) ValidatorBalances(stateID string, validatorIdxs []string) ([]net.ValidatorBalance, error) {
@@ -66,7 +68,7 @@ func newTestBeaconClient(data [][]net.ValidatorBalance) *TestBeaconClient {
 	}
 }
 
-func setup(data [][]net.ValidatorBalance, opts net.SubscribeOpts) (*eth2Monitor, error) {
+func setup(data [][]net.ValidatorBalance, opts net.SubscribeOpts, cfgOpts ConfigOpts) (*eth2Monitor, error) {
 	ormdb, err := gorm.Open(sqlite.Open("file::memory:?cache=shared"), &gorm.Config{})
 	if err != nil {
 		return nil, fmt.Errorf("In memory sqlite creation failed. Error '%v'", err)
@@ -74,7 +76,12 @@ func setup(data [][]net.ValidatorBalance, opts net.SubscribeOpts) (*eth2Monitor,
 
 	ormdb.AutoMigrate(&db.ValidatorORM{})
 
-	return NewEth2Monitor(&db.SQLiteRepository{DB: ormdb}, newTestBeaconClient(data), opts), nil
+	monitor, err := NewEth2Monitor(&db.SQLiteRepository{DB: ormdb}, newTestBeaconClient(data), opts, cfgOpts)
+	if err != nil {
+		return nil, fmt.Errorf("Monitor creation failed. Error '%v'", err)
+	}
+
+	return monitor, nil
 }
 
 func cleanup(r db.Repository) error {
@@ -84,6 +91,18 @@ func cleanup(r db.Repository) error {
 		return err
 	}
 	return sqlDB.Close()
+}
+
+type testSubscriber struct {
+	data map[string][]net.Checkpoint
+}
+
+func (s testSubscriber) Listen(url string, ch chan<- net.Checkpoint) {
+	for _, data := range s.data[url] {
+		ch <- data
+		//sleep to simulate a delay
+		time.Sleep(time.Millisecond * 50)
+	}
 }
 
 func TestGetValidatorBalance(t *testing.T) {
@@ -268,7 +287,7 @@ func TestGetValidatorBalance(t *testing.T) {
 
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
-			monitor, err := setup(tc.requestData, net.SubscribeOpts{})
+			monitor, err := setup(tc.requestData, net.SubscribeOpts{}, ConfigOpts{Config: &eth2Config{Consensus: []string{"1", "2", "3"}}})
 			if err != nil {
 				t.Fatalf("Setup failed. Error %v", err)
 			}
@@ -295,15 +314,193 @@ func TestGetValidatorBalance(t *testing.T) {
 	}
 }
 
-type testSubscriber struct {
-	data map[string][]net.Checkpoint
+type repositoryMock struct {
+	migrationCalled        int
+	expectedMigrationCalls int
+	migrationError         bool
 }
 
-func (s testSubscriber) Listen(url string, ch chan<- net.Checkpoint) {
-	for _, data := range s.data[url] {
-		ch <- data
-		//sleep to simulate a delay
-		time.Sleep(time.Millisecond * 50)
+func (rm *repositoryMock) FirstOrCreate(val db.Validator) (v db.Validator, err error) {
+	return
+}
+
+func (rm *repositoryMock) Update(val db.Validator) (err error) {
+	return
+}
+
+func (rm *repositoryMock) Validator(idx uint) (v db.Validator, err error) {
+	return
+}
+
+func (rm *repositoryMock) Migrate() error {
+	rm.migrationCalled++
+
+	if rm.migrationError {
+		return errors.New("migration error")
+	}
+
+	return nil
+}
+
+func TestSetup(t *testing.T) {
+	tcs := []struct {
+		name  string
+		opts  ConfigOpts
+		want  *eth2Monitor
+		env   map[string]string
+		isErr bool
+		mock  repositoryMock
+	}{
+		{
+			name: "Test case 1, valid config, prepared configuration data",
+			opts: ConfigOpts{
+				HandleCfg: false,
+				Config: &eth2Config{
+					Validators: []string{"1", "2", "3"},
+					Consensus:  []string{"Endpoint1"},
+				},
+			},
+			want: &eth2Monitor{
+				config: eth2Config{
+					Validators: []string{"1", "2", "3"},
+					Consensus:  []string{"Endpoint1"},
+				},
+				subscriberOpts: net.SubscribeOpts{Endpoints: []string{"Endpoint1"}},
+			},
+			isErr: false,
+			mock:  repositoryMock{migrationError: false, expectedMigrationCalls: 1},
+		},
+		{
+			name: "Test case 2, valid config, load configuration data from env, config setup not handled",
+			opts: ConfigOpts{
+				HandleCfg: false,
+				Config:    nil,
+			},
+			want: &eth2Monitor{
+				config: eth2Config{
+					Validators: []string{"1", "2", "3"},
+					Consensus:  []string{"Endpoint1"},
+				},
+				subscriberOpts: net.SubscribeOpts{Endpoints: []string{"Endpoint1"}},
+			},
+			env: map[string]string{
+				"PM_VALIDATORS": "1,2,3",
+				"PM_CONSENSUS":  "Endpoint1",
+			},
+			isErr: false,
+			mock:  repositoryMock{migrationError: false, expectedMigrationCalls: 1},
+		},
+		{
+			name: "Test case 3, valid config, load configuration data from env, config setup handled",
+			opts: ConfigOpts{
+				HandleCfg: true,
+				Config:    nil,
+			},
+			want: &eth2Monitor{
+				config: eth2Config{
+					Validators: []string{"1", "2", "3"},
+					Consensus:  []string{"Endpoint1"},
+				},
+				subscriberOpts: net.SubscribeOpts{Endpoints: []string{"Endpoint1"}},
+			},
+			env: map[string]string{
+				"PM_VALIDATORS": "1,2,3",
+				"PM_CONSENSUS":  "Endpoint1",
+			},
+			isErr: false,
+			mock:  repositoryMock{migrationError: false, expectedMigrationCalls: 1},
+		},
+		{
+			name: "Test case 4, invalid config (not consensus provided), prepared configuration data",
+			opts: ConfigOpts{
+				HandleCfg: false,
+				Config: &eth2Config{
+					Validators: []string{"1", "2", "3"},
+				},
+			},
+			want:  &eth2Monitor{},
+			isErr: true,
+			mock:  repositoryMock{migrationError: false, expectedMigrationCalls: 0},
+		},
+		{
+			name: "Test case 5, invalid config, load configuration data from env, config setup not handled",
+			opts: ConfigOpts{
+				HandleCfg: false,
+				Config:    nil,
+			},
+			want: &eth2Monitor{},
+			env: map[string]string{
+				"PM_VALIDATORS": "1,2,3",
+			},
+			isErr: true,
+			mock:  repositoryMock{migrationError: false, expectedMigrationCalls: 0},
+		},
+		{
+			name: "Test case 6, invalid config, load configuration data from env, config setup handled",
+			opts: ConfigOpts{
+				HandleCfg: true,
+				Config:    nil,
+			},
+			want: &eth2Monitor{},
+			env: map[string]string{
+				"PM_VALIDATORS": "1,2,3",
+			},
+			isErr: true,
+			mock:  repositoryMock{migrationError: false, expectedMigrationCalls: 0},
+		},
+		{
+			name: "Test case 7, valid config, migration error",
+			opts: ConfigOpts{
+				HandleCfg: false,
+				Config: &eth2Config{
+					Validators: []string{"1", "2", "3"},
+					Consensus:  []string{"Endpoint1"},
+				},
+			},
+			want: &eth2Monitor{
+				config: eth2Config{
+					Validators: []string{"1", "2", "3"},
+					Consensus:  []string{"Endpoint1"},
+				},
+				subscriberOpts: net.SubscribeOpts{Endpoints: []string{"Endpoint1"}},
+			},
+			isErr: true,
+			mock:  repositoryMock{migrationError: true, expectedMigrationCalls: 1},
+		},
+	}
+
+	for _, tc := range tcs {
+		t.Run(tc.name, func(t *testing.T) {
+			// setup
+			if !tc.opts.HandleCfg {
+				viper.AutomaticEnv()
+			}
+
+			for k, v := range tc.env {
+				t.Setenv(k, v)
+			}
+
+			monitor := &eth2Monitor{
+				repository:     &tc.mock,
+				beaconClient:   newTestBeaconClient([][]net.ValidatorBalance{}),
+				subscriberOpts: net.SubscribeOpts{},
+			}
+
+			// execute
+			err := monitor.setup(tc.opts)
+
+			descr := fmt.Sprintf("setup(%+v)", tc.opts)
+			if err = utils.CheckErr(descr, tc.isErr, err); err != nil {
+				t.Error(err)
+			}
+
+			assert.Equal(t, monitor.subscriberOpts, tc.want.subscriberOpts, descr+" gave a misconfigured monitor")
+			assert.Equal(t, monitor.config, tc.want.config, descr+" gave a misconfigured monitor")
+
+			if tc.mock.expectedMigrationCalls != tc.mock.migrationCalled {
+				t.Errorf("Expected %d migration calls, got %d", tc.mock.expectedMigrationCalls, tc.mock.migrationCalled)
+			}
+		})
 	}
 }
 
@@ -314,35 +511,9 @@ func TestMonitor(t *testing.T) {
 	// - ValidatorBalances within getValidatorBalance fetch 'head' instead of slot
 
 	type setupArgs struct {
-		requestData  [][]net.ValidatorBalance
-		opts         net.SubscribeOpts
-		handleCfg    bool
-		env          map[string]string
-		migrateError bool
-	}
-
-	setupMonitor := func(args setupArgs) (*eth2Monitor, error) {
-		m, err := setup(args.requestData, args.opts)
-		if err != nil {
-			return nil, err
-		}
-
-		if args.migrateError {
-			err = cleanup(m.repository)
-			if err != nil {
-				return nil, err
-			}
-		}
-
-		if !args.handleCfg {
-			viper.AutomaticEnv()
-		}
-
-		for k, v := range args.env {
-			t.Setenv(k, v)
-		}
-
-		return m, nil
+		requestData [][]net.ValidatorBalance
+		opts        net.SubscribeOpts
+		cfgOpts     ConfigOpts
 	}
 
 	tcs := []struct {
@@ -354,44 +525,7 @@ func TestMonitor(t *testing.T) {
 		existingData []db.Validator
 	}{
 		{
-			name: "Test case 1, config error, handleCfg",
-			args: setupArgs{
-				requestData: [][]net.ValidatorBalance{},
-				opts:        net.SubscribeOpts{},
-				handleCfg:   true,
-				env:         map[string]string{},
-			},
-			want:  []db.Validator{},
-			isErr: true,
-			sleep: time.Millisecond,
-		},
-		{
-			name: "Test case 2, config error, !handleCfg",
-			args: setupArgs{
-				requestData: [][]net.ValidatorBalance{},
-				opts:        net.SubscribeOpts{},
-				handleCfg:   false,
-				env:         map[string]string{},
-			},
-			want:  []db.Validator{},
-			isErr: true,
-			sleep: time.Millisecond,
-		},
-		{
-			name: "Test case 3, migration error",
-			args: setupArgs{
-				requestData:  [][]net.ValidatorBalance{},
-				opts:         net.SubscribeOpts{},
-				handleCfg:    false,
-				env:          map[string]string{},
-				migrateError: true,
-			},
-			want:  []db.Validator{},
-			isErr: true,
-			sleep: time.Millisecond,
-		},
-		{
-			name: "Test case 4, normal workflow",
+			name: "Test case 1, normal workflow",
 			args: setupArgs{
 				requestData: [][]net.ValidatorBalance{
 					{
@@ -415,10 +549,12 @@ func TestMonitor(t *testing.T) {
 					},
 				},
 				},
-				handleCfg: true,
-				env: map[string]string{
-					"PM_VALIDATORS": "1,2,3",
-					"PM_CONSENSUS":  "Endpoint1",
+				cfgOpts: ConfigOpts{
+					HandleCfg: false,
+					Config: &eth2Config{
+						Validators: []string{"1", "2", "3"},
+						Consensus:  []string{"Endpoint1"},
+					},
 				},
 			},
 			want: []db.Validator{
@@ -438,7 +574,7 @@ func TestMonitor(t *testing.T) {
 
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
-			monitor, err := setupMonitor(tc.args)
+			monitor, err := setup(tc.args.requestData, tc.args.opts, tc.args.cfgOpts)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -449,7 +585,7 @@ func TestMonitor(t *testing.T) {
 			}
 
 			descr := fmt.Sprintf("Monitor() with args %+v", tc.args)
-			_, err = monitor.Monitor(tc.args.handleCfg)
+			_, err = monitor.Monitor()
 			if err = utils.CheckErr(descr, tc.isErr, err); err != nil {
 				t.Error(err)
 			}
@@ -471,3 +607,5 @@ func TestMonitor(t *testing.T) {
 		})
 	}
 }
+
+// TODO: Test NewEth2Monitor
