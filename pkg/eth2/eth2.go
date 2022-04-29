@@ -247,6 +247,32 @@ func (e *eth2Monitor) setupAlerts(<-chan net.Checkpoint) {
 
 }
 
-func (e *eth2Monitor) TrackSync(endpoints []string) {
+func (e *eth2Monitor) TrackSync(done <-chan struct{}, endpoints []string, wait time.Duration) <-chan EndpointSyncStatus {
+	logFields := log.Fields{configs.Component: "ETH2 Monitor", "Method": "TrackSync"}
+	c := make(chan EndpointSyncStatus, len(endpoints))
 
+	go func() {
+		select {
+		case <-done:
+			return
+		case <-time.After(wait):
+			// TODO: Benchmark this and check what happens if the processing is longer than the wait
+			status := e.beaconClient.SyncStatus(endpoints)
+			for _, s := range status {
+				if s.Error != nil {
+					log.WithFields(logFields).Errorf(CheckingSyncStatusError, s.Endpoint, s.Error)
+					c <- EndpointSyncStatus{Endpoint: s.Endpoint, Synced: false}
+				} else {
+					if s.IsSyncing {
+						log.WithFields(logFields).Infof("Endpoint %s is syncing", s.Endpoint)
+					} else {
+						log.WithFields(logFields).Infof("Endpoint %s is synced", s.Endpoint)
+					}
+					c <- EndpointSyncStatus{Endpoint: s.Endpoint, Synced: !s.IsSyncing}
+				}
+			}
+		}
+	}()
+
+	return c
 }

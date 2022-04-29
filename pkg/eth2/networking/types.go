@@ -46,4 +46,5 @@ type SyncingStatus struct {
 	SyncDistance string `json:"sync_distance"`
 	IsSyncing    bool   `json:"is_syncing"`
 	Error        error
+	Endpoint     string
 }

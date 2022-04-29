@@ -40,6 +40,14 @@ func (tbc *TestBeaconClient) ValidatorBalances(stateID string, validatorIdxs []s
 	return tbc.data[tbc.current-1], nil
 }
 
+func (tbc *TestBeaconClient) Health(endpoints []string) []net.HealthResponse {
+	return nil
+}
+
+func (tbc *TestBeaconClient) SyncStatus(endpoints []string) []net.SyncingStatus {
+	return nil
+}
+
 func fillChannel(data []net.Checkpoint) <-chan net.Checkpoint {
 	ch := make(chan net.Checkpoint, len(data))
 	go func() {

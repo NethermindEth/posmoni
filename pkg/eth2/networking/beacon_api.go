@@ -152,12 +152,7 @@ func (bc *BeaconClient) SyncStatus(endpoints []string) []SyncingStatus {
 		return nil
 	}
 
-	type status struct {
-		SyncingStatus
-		err error
-	}
-
-	ch := make(chan status, len(endpoints))
+	ch := make(chan SyncingStatus, len(endpoints))
 	defer close(ch)
 
 	for _, endpoint := range endpoints {
@@ -165,46 +160,39 @@ func (bc *BeaconClient) SyncStatus(endpoints []string) []SyncingStatus {
 			url := fmt.Sprintf("%s%s", endpoint, "/eth/v1/node/syncing")
 			resp, err := utils.GetRequest(url, bc.RetryDuration)
 			if err != nil {
-				ch <- status{err: err}
+				ch <- SyncingStatus{Endpoint: endpoint, Error: err}
 				return
 			}
 
 			defer resp.Body.Close()
 			contents, err := ioutil.ReadAll(resp.Body)
 			if err != nil {
-				ch <- status{err: fmt.Errorf(ReadBodyError, err)}
+				ch <- SyncingStatus{Endpoint: endpoint, Error: fmt.Errorf(ReadBodyError, err)}
 				return
 			}
 
 			if resp.StatusCode != 200 {
-				ch <- status{err: fmt.Errorf(BadResponseError, url, resp.StatusCode, string(contents))}
+				ch <- SyncingStatus{Endpoint: endpoint, Error: fmt.Errorf(BadResponseError, url, resp.StatusCode, string(contents))}
 				return
 			}
 
 			var ssr SyncingStatusResponse
 			ssr, err = unmarshalData(contents, ssr)
 			if err != nil {
-				ch <- status{err: err}
+				ch <- SyncingStatus{Endpoint: endpoint, Error: err}
 				return
 			}
 
-			ch <- status{SyncingStatus: ssr.Data, err: nil}
+			ss := ssr.Data
+			ss.Endpoint = endpoint
+			ch <- ss
 
 		}(endpoint)
 	}
 
 	responses := make([]SyncingStatus, 0)
 	for i := 0; i < len(endpoints); i++ {
-		resp := <-ch
-		ss := SyncingStatus{}
-
-		if resp.err != nil {
-			ss.Error = resp.err
-		} else {
-			ss = resp.SyncingStatus
-		}
-
-		responses = append(responses, ss)
+		responses = append(responses, <-ch)
 	}
 
 	return responses

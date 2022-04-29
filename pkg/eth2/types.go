@@ -15,3 +15,9 @@ type ConfigOpts struct {
 	// Configuration data. Should be used when is not desired to use config file or enviroment variables to get configuration data.
 	Config *eth2Config
 }
+
+// EndpointSyncStatus : Struct Represent sync status of an endpoint
+type EndpointSyncStatus struct {
+	Endpoint string
+	Synced   bool
+}
