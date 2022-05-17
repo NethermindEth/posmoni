@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"io"
 	"net/http"
 	"time"
 
@@ -47,5 +48,53 @@ func GetRequest(url string, retryDuration time.Duration) (*http.Response, error)
 		return nil, err
 	}
 
+	return response, nil
+}
+
+/*
+PostRequest :
+Make a POST request to the given URL. Uses exponential retries with backoff optionally.
+
+params :-
+a. url string
+URL to make the request to
+b. retry bool
+True if retries should be done
+c. retryDuration time.Duration
+Duration to wait between retries
+
+returns :-
+a. http.Response
+Response from the request
+b. error
+Error if any
+*/
+func PostRequest(url, contentType string, body io.Reader, retry bool, retryDuration time.Duration) (*http.Response, error) {
+	var response *http.Response
+	var err error
+
+	if retry {
+		// Adding exponential retry
+		b := backoff.NewExponentialBackOff()
+		b.MaxElapsedTime = retryDuration
+
+		err = backoff.Retry(func() (err error) {
+			response, err = http.Post(url, contentType, body)
+			if err != nil {
+				log.Errorf("request failed. Error: %v", err)
+				log.Info("Retrying request")
+				return err
+			} else if response.StatusCode != 200 {
+				log.Errorf("bad response, got: %d", response.StatusCode)
+			}
+			return nil
+		}, b)
+	} else {
+		response, err = http.Post(url, contentType, body)
+	}
+
+	if err != nil {
+		return nil, err
+	}
 	return response, nil
 }
