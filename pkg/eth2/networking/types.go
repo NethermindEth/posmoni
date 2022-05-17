@@ -48,3 +48,19 @@ type BeaconSyncingStatus struct {
 	Error        error
 	Endpoint     string
 }
+
+// eth1Request : Struct Represent a ETH1 json-rpc method call body
+type eth1Request struct {
+	ID      int           `json:"id"`
+	JSONRPC string        `json:"jsonrpc"`
+	Method  string        `json:"method"`
+	Params  []interface{} `json:"params"`
+}
+
+// eth1Request : Struct Represent a ETH1 json-rpc method response body
+type eth1Response struct {
+	ID      int             `json:"id"`
+	JSONRPC string          `json:"jsonrpc"`
+	Result  json.RawMessage `json:"result"`
+	Error   *Eth1Error      `json:"error"`
+}
