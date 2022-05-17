@@ -81,3 +81,32 @@ func (ec *ExecutionClient) Call(method string, params ...any) (json.RawMessage, 
 	return resp.Result, nil
 }
 
+/*
+SyncStatus :
+Check sync status of the execution client using the json-rpc API method 'eth_syncing'.
+
+params :-
+none
+
+returns :-
+a. ExecutionSyncingStatus
+Sync status of the execution client
+*/
+func (ec *ExecutionClient) SyncStatus() ExecutionSyncingStatus {
+	result, err := ec.Call("eth_syncing")
+	if err != nil {
+		return ExecutionSyncingStatus{Endpoint: ec.Endpoint, Error: err}
+	}
+	log.Debugf("Result: %s", string(result))
+
+	var ess ExecutionSyncingStatus
+	ess, err = unmarshalData(result, ess)
+	if err != nil && err.Error() != "json: cannot unmarshal bool into Go value of type networking.ExecutionSyncingStatus" {
+		return ExecutionSyncingStatus{Endpoint: ec.Endpoint, Error: err}
+	}
+
+	// If is not syncing (is synced), result is 'false'
+	ess.IsSyncing = ess.CurrentBlock != ""
+
+	return ess
+}

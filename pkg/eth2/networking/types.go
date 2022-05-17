@@ -1,5 +1,9 @@
 package networking
 
+import (
+	"encoding/json"
+)
+
 // Checkpoint : Struct Represent event data from beacon chain
 type Checkpoint struct {
 	Block string `json:"block"`
@@ -63,4 +67,14 @@ type eth1Response struct {
 	JSONRPC string          `json:"jsonrpc"`
 	Result  json.RawMessage `json:"result"`
 	Error   *Eth1Error      `json:"error"`
+}
+
+// ExecutionSyncingStatus : Struct Represent response data from 'eth_syncing' json-rpc API call
+type ExecutionSyncingStatus struct {
+	StartingBlock string `json:"startingBloc"`
+	CurrentBlock  string `json:"currentBlock"`
+	HighestBlock  string `json:"highestBlock"`
+	IsSyncing     bool
+	Error         error
+	Endpoint      string
 }

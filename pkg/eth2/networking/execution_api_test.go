@@ -131,3 +131,125 @@ func TestCall(t *testing.T) {
 	}
 }
 
+func TestETH1SyncStatus(t *testing.T) {
+	t.Parallel()
+
+	tcs := []struct {
+		name    string
+		want    ExecutionSyncingStatus
+		handler handler
+	}{
+		{
+			"Test case 1, nil endpoint, request failed",
+			ExecutionSyncingStatus{Error: errors.New("")},
+			nil,
+		},
+		{
+			"Test case 2, bad endpoint, 400 response",
+			ExecutionSyncingStatus{Error: errors.New("")},
+			func(rw http.ResponseWriter, req *http.Request) {
+				if err := validateReq(req, "eth_syncing"); err != nil {
+					t.Fatalf("Request validation failed. Error: %v", err)
+				}
+				rw.WriteHeader(http.StatusBadRequest)
+			},
+		},
+		{
+			"Test case 3, good endpoint, empty response body",
+			ExecutionSyncingStatus{Error: errors.New("")},
+			func(rw http.ResponseWriter, req *http.Request) {
+				if err := validateReq(req, "eth_syncing"); err != nil {
+					t.Fatalf("Request validation failed. Error: %v", err)
+				}
+				rw.WriteHeader(http.StatusOK)
+				rw.Write([]byte(""))
+			},
+		},
+		{
+			"Test case 4, good endpoint, bad response body",
+			ExecutionSyncingStatus{Error: errors.New("")},
+			func(rw http.ResponseWriter, req *http.Request) {
+				if err := validateReq(req, "eth_syncing"); err != nil {
+					t.Fatalf("Request validation failed. Error: %v", err)
+				}
+				rw.WriteHeader(http.StatusOK)
+				rw.Write([]byte("312312"))
+			},
+		},
+		{
+			"Test case 5, good endpoint, bad response body, bad json",
+			ExecutionSyncingStatus{Error: errors.New("")},
+			func(rw http.ResponseWriter, req *http.Request) {
+				if err := validateReq(req, "eth_syncing"); err != nil {
+					t.Fatalf("Request validation failed. Error: %v", err)
+				}
+				rw.WriteHeader(http.StatusOK)
+				rw.Write([]byte("{"))
+			},
+		},
+		{
+			"Test case 6, good endpoint, not synced",
+			ExecutionSyncingStatus{IsSyncing: true},
+			func(rw http.ResponseWriter, req *http.Request) {
+				if err := validateReq(req, "eth_syncing"); err != nil {
+					t.Fatalf("Request validation failed. Error: %v", err)
+				}
+				rw.WriteHeader(http.StatusOK)
+				rw.Write([]byte(`{
+						"id":1,
+						"jsonrpc": "2.0",
+						"result": {
+							"startingBlock": "0x384",
+							"currentBlock": "0x386",
+							"highestBlock": "0x454"
+						}
+					}`))
+			},
+		},
+		{
+			"Test case 7, good endpoint, synced",
+			ExecutionSyncingStatus{IsSyncing: false},
+			func(rw http.ResponseWriter, req *http.Request) {
+				if err := validateReq(req, "eth_syncing"); err != nil {
+					t.Fatalf("Request validation failed. Error: %v", err)
+				}
+
+				rw.WriteHeader(http.StatusOK)
+				rw.Write([]byte(`{
+						"id":1,
+						"jsonrpc": "2.0",
+						"result": false
+					}`))
+			},
+		},
+		{
+			"Test case 8, good endpoint, good response body, incorrect json",
+			ExecutionSyncingStatus{Error: errors.New("")},
+			func(rw http.ResponseWriter, req *http.Request) {
+				if err := validateReq(req, "eth_syncing"); err != nil {
+					t.Fatalf("Request validation failed. Error: %v", err)
+				}
+				rw.WriteHeader(http.StatusOK)
+				rw.Write([]byte(`{"result": 666}`))
+			},
+		},
+	}
+
+	for _, tc := range tcs {
+		t.Run(tc.name, func(t *testing.T) {
+			srv := setupServer(tc.handler)
+			defer srv.Close()
+
+			client := ExecutionClient{
+				Endpoint:      srv.URL,
+				RetryDuration: time.Millisecond * 100,
+			}
+
+			got := client.SyncStatus()
+
+			if got.IsSyncing != tc.want.IsSyncing && !(got.Error != nil && tc.want.Error != nil || got.Error == nil && tc.want.Error == nil) {
+				t.Errorf("Got %+v, want %+v", got, tc.want)
+			}
+		})
+	}
+}
