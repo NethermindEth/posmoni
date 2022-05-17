@@ -35,13 +35,13 @@ type HealthResponse struct {
 	Error    error
 }
 
-// SyncingStatusResponse : Struct Represent response body from 'http://<endpoint>/eth/v1/node/syncing' API call
-type SyncingStatusResponse struct {
-	Data SyncingStatus `json:"data"`
+// BeaconSyncingStatusResponse : Struct Represent response body from 'http://<endpoint>/eth/v1/node/syncing' API call
+type BeaconSyncingStatusResponse struct {
+	Data BeaconSyncingStatus `json:"data"`
 }
 
-// SyncingStatus : Struct Represent response data from 'http://<endpoint>/eth/v1/node/syncing' API call
-type SyncingStatus struct {
+// BeaconSyncingStatus : Struct Represent response data from 'http://<endpoint>/eth/v1/node/syncing' API call
+type BeaconSyncingStatus struct {
 	HeadSlot     string `json:"head_slot"`
 	SyncDistance string `json:"sync_distance"`
 	IsSyncing    bool   `json:"is_syncing"`

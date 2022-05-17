@@ -215,7 +215,7 @@ func TestSyncStatusIntegration(t *testing.T) {
 	tcs := []struct {
 		name string
 		urls []string
-		want []SyncingStatus
+		want []BeaconSyncingStatus
 	}{
 		{
 			"Test Case 1, empty endpoints",
@@ -225,17 +225,17 @@ func TestSyncStatusIntegration(t *testing.T) {
 		{
 			"Test Case 2, bad endpoint",
 			[]string{"http://localhost:8080"},
-			[]SyncingStatus{{Error: errors.New("")}},
+			[]BeaconSyncingStatus{{Error: errors.New("")}},
 		},
 		{
 			"Test Case 3, good endpoint",
 			bceps[0:1],
-			[]SyncingStatus{{IsSyncing: false}},
+			[]BeaconSyncingStatus{{IsSyncing: false}},
 		},
 		{
 			"Test Case 4, good endpoints",
 			bceps,
-			[]SyncingStatus{},
+			[]BeaconSyncingStatus{},
 		},
 	}
 
@@ -248,7 +248,7 @@ func TestSyncStatusIntegration(t *testing.T) {
 			if len(tc.want) == 0 {
 				// If want is empty then create a want list with good responses with the same length as the urls list
 				for i := 0; i < len(tc.urls); i++ {
-					tc.want = append(tc.want, SyncingStatus{IsSyncing: false})
+					tc.want = append(tc.want, BeaconSyncingStatus{IsSyncing: false})
 				}
 			}
 

@@ -44,7 +44,7 @@ func (tbc *TestBeaconClient) Health(endpoints []string) []net.HealthResponse {
 	return nil
 }
 
-func (tbc *TestBeaconClient) SyncStatus(endpoints []string) []net.SyncingStatus {
+func (tbc *TestBeaconClient) SyncStatus(endpoints []string) []net.BeaconSyncingStatus {
 	return nil
 }
 

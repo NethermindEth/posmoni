@@ -150,7 +150,7 @@ func TestSyncStatus(t *testing.T) {
 
 	tcs := []struct {
 		name     string
-		want     []SyncingStatus
+		want     []BeaconSyncingStatus
 		handlers []handler
 	}{
 		{
@@ -160,12 +160,12 @@ func TestSyncStatus(t *testing.T) {
 		},
 		{
 			"Test Case 2, empty endpoints, request failed",
-			[]SyncingStatus{{Error: errors.New("")}},
+			[]BeaconSyncingStatus{{Error: errors.New("")}},
 			[]handler{nil},
 		},
 		{
 			"Test Case 3, bad endpoint, 400 response",
-			[]SyncingStatus{{Error: errors.New("")}},
+			[]BeaconSyncingStatus{{Error: errors.New("")}},
 			[]handler{
 				func(rw http.ResponseWriter, req *http.Request) {
 					rw.WriteHeader(http.StatusBadRequest)
@@ -174,7 +174,7 @@ func TestSyncStatus(t *testing.T) {
 		},
 		{
 			"Test Case 4, good endpoint, empty response body",
-			[]SyncingStatus{{Error: errors.New("")}},
+			[]BeaconSyncingStatus{{Error: errors.New("")}},
 			[]handler{
 				func(rw http.ResponseWriter, req *http.Request) {
 					rw.WriteHeader(http.StatusOK)
@@ -184,7 +184,7 @@ func TestSyncStatus(t *testing.T) {
 		},
 		{
 			"Test Case 4, good endpoint, bad response body",
-			[]SyncingStatus{{Error: errors.New("")}},
+			[]BeaconSyncingStatus{{Error: errors.New("")}},
 			[]handler{
 				func(rw http.ResponseWriter, req *http.Request) {
 					rw.WriteHeader(http.StatusOK)
@@ -194,7 +194,7 @@ func TestSyncStatus(t *testing.T) {
 		},
 		{
 			"Test Case 5, good endpoint, bad response body, bad json",
-			[]SyncingStatus{{Error: errors.New("")}},
+			[]BeaconSyncingStatus{{Error: errors.New("")}},
 			[]handler{
 				func(rw http.ResponseWriter, req *http.Request) {
 					rw.WriteHeader(http.StatusOK)
@@ -204,7 +204,7 @@ func TestSyncStatus(t *testing.T) {
 		},
 		{
 			"Test Case 6, good endpoint, not synced",
-			[]SyncingStatus{{IsSyncing: true}},
+			[]BeaconSyncingStatus{{IsSyncing: true}},
 			[]handler{
 				func(rw http.ResponseWriter, req *http.Request) {
 					rw.WriteHeader(http.StatusOK)
@@ -218,7 +218,7 @@ func TestSyncStatus(t *testing.T) {
 		},
 		{
 			"Test Case 7, good endpoint, synced",
-			[]SyncingStatus{{IsSyncing: false}},
+			[]BeaconSyncingStatus{{IsSyncing: false}},
 			[]handler{
 				func(rw http.ResponseWriter, req *http.Request) {
 					rw.WriteHeader(http.StatusOK)
@@ -232,7 +232,7 @@ func TestSyncStatus(t *testing.T) {
 		},
 		{
 			"Test Case 8, good endpoints, mixed sync status",
-			[]SyncingStatus{{IsSyncing: false}, {IsSyncing: true}, {IsSyncing: false}},
+			[]BeaconSyncingStatus{{IsSyncing: false}, {IsSyncing: true}, {IsSyncing: false}},
 			[]handler{
 				func(rw http.ResponseWriter, req *http.Request) {
 					rw.WriteHeader(http.StatusOK)

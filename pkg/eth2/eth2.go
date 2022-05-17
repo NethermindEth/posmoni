@@ -100,7 +100,7 @@ func NewEth2Monitor(r db.Repository, bc net.BeaconAPI, so net.SubscribeOpts, opt
 }
 
 /*
-Setup :
+setup :
 Handle eth2Monitor configuration.
 params :-
 a. handleCfg bool

@@ -143,16 +143,16 @@ a. endpoints []string
 Endpoints to check
 
 returns :-
-a. []HealthResponse
-Health responses from the given endpoints
+a. []BeaconSyncingStatus
+Sync status of the given endpoints
 */
-func (bc *BeaconClient) SyncStatus(endpoints []string) []SyncingStatus {
+func (bc *BeaconClient) SyncStatus(endpoints []string) []BeaconSyncingStatus {
 	if len(endpoints) == 0 {
 		log.Warn("No endpoints provided for health check")
 		return nil
 	}
 
-	ch := make(chan SyncingStatus, len(endpoints))
+	ch := make(chan BeaconSyncingStatus, len(endpoints))
 	defer close(ch)
 
 	for _, endpoint := range endpoints {
@@ -160,26 +160,26 @@ func (bc *BeaconClient) SyncStatus(endpoints []string) []SyncingStatus {
 			url := fmt.Sprintf("%s%s", endpoint, "/eth/v1/node/syncing")
 			resp, err := utils.GetRequest(url, bc.RetryDuration)
 			if err != nil {
-				ch <- SyncingStatus{Endpoint: endpoint, Error: err}
+				ch <- BeaconSyncingStatus{Endpoint: endpoint, Error: err}
 				return
 			}
 
 			defer resp.Body.Close()
 			contents, err := ioutil.ReadAll(resp.Body)
 			if err != nil {
-				ch <- SyncingStatus{Endpoint: endpoint, Error: fmt.Errorf(ReadBodyError, err)}
+				ch <- BeaconSyncingStatus{Endpoint: endpoint, Error: fmt.Errorf(ReadBodyError, err)}
 				return
 			}
 
 			if resp.StatusCode != 200 {
-				ch <- SyncingStatus{Endpoint: endpoint, Error: fmt.Errorf(BadResponseError, url, resp.StatusCode, string(contents))}
+				ch <- BeaconSyncingStatus{Endpoint: endpoint, Error: fmt.Errorf(BadResponseError, url, resp.StatusCode, string(contents))}
 				return
 			}
 
-			var ssr SyncingStatusResponse
+			var ssr BeaconSyncingStatusResponse
 			ssr, err = unmarshalData(contents, ssr)
 			if err != nil {
-				ch <- SyncingStatus{Endpoint: endpoint, Error: err}
+				ch <- BeaconSyncingStatus{Endpoint: endpoint, Error: err}
 				return
 			}
 
@@ -190,7 +190,7 @@ func (bc *BeaconClient) SyncStatus(endpoints []string) []SyncingStatus {
 		}(endpoint)
 	}
 
-	responses := make([]SyncingStatus, 0)
+	responses := make([]BeaconSyncingStatus, 0)
 	for i := 0; i < len(endpoints); i++ {
 		responses = append(responses, <-ch)
 	}
