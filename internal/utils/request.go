@@ -26,6 +26,7 @@ b. error
 Error if any
 */
 func GetRequest(url string, retryDuration time.Duration) (*http.Response, error) {
+	logFields := log.Fields{"Method": "GetRequest"}
 	var response *http.Response
 
 	// Adding exponential retry
@@ -35,11 +36,11 @@ func GetRequest(url string, retryDuration time.Duration) (*http.Response, error)
 	err := backoff.Retry(func() (err error) {
 		response, err = http.Get(url)
 		if err != nil {
-			log.Errorf("request failed. Error: %v", err)
-			log.Info("Retrying request")
+			log.WithFields(logFields).Errorf("request failed. Error: %v", err)
+			log.WithFields(logFields).Info("Retrying request")
 			return err
 		} else if response.StatusCode != 200 {
-			log.Errorf("bad response, got: %d", response.StatusCode)
+			log.WithFields(logFields).Errorf("bad response, got: %d", response.StatusCode)
 		}
 		return nil
 	}, b)
@@ -70,6 +71,7 @@ b. error
 Error if any
 */
 func PostRequest(url, contentType string, body io.Reader, retry bool, retryDuration time.Duration) (*http.Response, error) {
+	logFields := log.Fields{"Method": "PostRequest"}
 	var response *http.Response
 	var err error
 
@@ -81,11 +83,11 @@ func PostRequest(url, contentType string, body io.Reader, retry bool, retryDurat
 		err = backoff.Retry(func() (err error) {
 			response, err = http.Post(url, contentType, body)
 			if err != nil {
-				log.Errorf("request failed. Error: %v", err)
-				log.Info("Retrying request")
+				log.WithFields(logFields).Errorf("request failed. Error: %v", err)
+				log.WithFields(logFields).Info("Retrying request")
 				return err
 			} else if response.StatusCode != 200 {
-				log.Errorf("bad response, got: %d", response.StatusCode)
+				log.WithFields(logFields).Errorf("bad response, got: %d", response.StatusCode)
 			}
 			return nil
 		}, b)

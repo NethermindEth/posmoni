@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/NethermindEth/posmoni/configs"
 	"github.com/NethermindEth/posmoni/internal/utils"
 	log "github.com/sirupsen/logrus"
 )
@@ -95,8 +96,9 @@ a. []HealthResponse
 Health responses from the given endpoints
 */
 func (bc *BeaconClient) Health(endpoints []string) []HealthResponse {
+	logFields := log.Fields{configs.Component: "BeaconClient", "Method": "Health"}
 	if len(endpoints) == 0 {
-		log.Warn("No endpoints provided for health check")
+		log.WithFields(logFields).Warn("No endpoints provided for health check")
 		return nil
 	}
 
@@ -147,8 +149,9 @@ a. []BeaconSyncingStatus
 Sync status of the given endpoints
 */
 func (bc *BeaconClient) SyncStatus(endpoints []string) []BeaconSyncingStatus {
+	logFields := log.Fields{configs.Component: "BeaconClient", "Method": "SyncStatus"}
 	if len(endpoints) == 0 {
-		log.Warn("No endpoints provided for health check")
+		log.WithFields(logFields).Warn("No endpoints provided for health check")
 		return nil
 	}
 
