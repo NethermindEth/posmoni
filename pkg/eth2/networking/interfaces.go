@@ -17,6 +17,6 @@ type BeaconAPI interface {
 
 // ExecutionAPI : Interface for ETH1 JSON RPC API
 type ExecutionAPI interface {
-	Call(method string, params ...any) (json.RawMessage, error)
-	SyncStatus() ExecutionSyncingStatus
+	Call(endpoint, method string, params ...any) (json.RawMessage, error)
+	SyncStatus(endpoints []string) []ExecutionSyncingStatus
 }

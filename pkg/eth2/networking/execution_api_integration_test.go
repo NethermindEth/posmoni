@@ -15,13 +15,15 @@ func TestETH1SyncStatusIntegration(t *testing.T) {
 	}
 
 	client := ExecutionClient{
-		Endpoint:      endpoint,
 		RetryDuration: time.Millisecond * 100,
 	}
 
-	got := client.SyncStatus()
+	got := client.SyncStatus([]string{endpoint})
 
-	if got.Error != nil {
-		t.Errorf("Got unexpected error calling SyncStatus(). Error: %v", got.Error)
+	if len(got) != 1 {
+		t.Errorf("Wrong len(got) value, expected %d, got %d", 1, len(got))
+	}
+	if got[0].Error != nil {
+		t.Errorf("Got unexpected error calling SyncStatus(). Error: %v", got[0].Error)
 	}
 }

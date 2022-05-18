@@ -7,14 +7,13 @@ import (
 	"io/ioutil"
 	"time"
 
+	"github.com/NethermindEth/posmoni/configs"
 	"github.com/NethermindEth/posmoni/internal/utils"
 	log "github.com/sirupsen/logrus"
 )
 
 // ExecutionClient : Struct ExecutionAPI interface implementation
 type ExecutionClient struct {
-	// Execution node endpoint to connect to
-	Endpoint string
 	// Time between retries when a request fails
 	RetryDuration time.Duration
 }
@@ -44,7 +43,7 @@ Result field of the json response
 b. error
 Error if any
 */
-func (ec *ExecutionClient) Call(method string, params ...any) (json.RawMessage, error) {
+func (ec *ExecutionClient) Call(endpoint, method string, params ...any) (json.RawMessage, error) {
 	request := eth1Request{
 		ID:      1,
 		JSONRPC: "2.0",
@@ -57,7 +56,7 @@ func (ec *ExecutionClient) Call(method string, params ...any) (json.RawMessage, 
 		return nil, err
 	}
 
-	response, err := utils.PostRequest(ec.Endpoint, "application/json", bytes.NewBuffer(body), true, ec.RetryDuration)
+	response, err := utils.PostRequest(endpoint, "application/json", bytes.NewBuffer(body), true, ec.RetryDuration)
 
 	if err != nil {
 		return nil, err
@@ -92,21 +91,43 @@ returns :-
 a. ExecutionSyncingStatus
 Sync status of the execution client
 */
-func (ec *ExecutionClient) SyncStatus() ExecutionSyncingStatus {
-	result, err := ec.Call("eth_syncing")
-	if err != nil {
-		return ExecutionSyncingStatus{Endpoint: ec.Endpoint, Error: err}
-	}
-	log.Debugf("Result: %s", string(result))
-
-	var ess ExecutionSyncingStatus
-	ess, err = unmarshalData(result, ess)
-	if err != nil && err.Error() != "json: cannot unmarshal bool into Go value of type networking.ExecutionSyncingStatus" {
-		return ExecutionSyncingStatus{Endpoint: ec.Endpoint, Error: err}
+func (ec *ExecutionClient) SyncStatus(endpoints []string) []ExecutionSyncingStatus {
+	logFields := log.Fields{configs.Component: "ExecutionClient", "Method": "SyncStatus"}
+	if len(endpoints) == 0 {
+		log.WithFields(logFields).Warn("No endpoints provided for health check")
+		return nil
 	}
 
-	// If is not syncing (is synced), result is 'false'
-	ess.IsSyncing = ess.CurrentBlock != ""
+	ch := make(chan ExecutionSyncingStatus, len(endpoints))
+	defer close(ch)
 
-	return ess
+	for _, endpoint := range endpoints {
+		go func(endpoint string) {
+			result, err := ec.Call(endpoint, "eth_syncing")
+			if err != nil {
+				ch <- ExecutionSyncingStatus{Endpoint: endpoint, Error: err}
+				return
+			}
+			log.WithFields(logFields).Debugf("Result: %s", string(result))
+
+			var ess ExecutionSyncingStatus
+			ess, err = unmarshalData(result, ess)
+			if err != nil && err.Error() != "json: cannot unmarshal bool into Go value of type networking.ExecutionSyncingStatus" {
+				ch <- ExecutionSyncingStatus{Endpoint: endpoint, Error: err}
+				return
+			}
+
+			// If it is not syncing (it is synced), result is 'false'
+			ess.IsSyncing = ess.CurrentBlock != ""
+
+			ch <- ess
+		}(endpoint)
+	}
+
+	responses := make([]ExecutionSyncingStatus, 0)
+	for i := 0; i < len(endpoints); i++ {
+		responses = append(responses, <-ch)
+	}
+
+	return responses
 }
