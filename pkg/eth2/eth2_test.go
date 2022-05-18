@@ -1,6 +1,7 @@
 package eth2
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"testing"
@@ -15,9 +16,9 @@ import (
 	"gorm.io/gorm"
 )
 
-type syncStatusInfo struct {
-	returnData []net.BeaconSyncingStatus
-	calls      int
+type bcSyncStatusInfo struct {
+	returnData [][]net.BeaconSyncingStatus
+	current    int
 }
 
 type validatorBalanceInfo struct {
@@ -25,11 +26,11 @@ type validatorBalanceInfo struct {
 	current    int
 }
 
-// Mock of BeaconAPI.
+// Mock of BeaconAPI
 type TestBeaconClient struct {
 	endpoints []string
 	vbCall    validatorBalanceInfo
-	ssCall    syncStatusInfo
+	ssCall    bcSyncStatusInfo
 }
 
 func (tbc *TestBeaconClient) SetEndpoints(endpoints []string) {
@@ -55,8 +56,44 @@ func (tbc *TestBeaconClient) Health(endpoints []string) []net.HealthResponse {
 }
 
 func (tbc *TestBeaconClient) SyncStatus(endpoints []string) []net.BeaconSyncingStatus {
-	tbc.ssCall.calls++
-	return tbc.ssCall.returnData
+	if tbc.ssCall.current >= len(tbc.ssCall.returnData) {
+		return nil
+	}
+
+	tbc.ssCall.current++
+	return tbc.ssCall.returnData[tbc.ssCall.current-1]
+}
+
+type exSyncStatusInfo struct {
+	returnData [][]net.ExecutionSyncingStatus
+	current    int
+}
+
+// Mock of ExecutionAPI
+type TestExecutionClient struct {
+	ssCall exSyncStatusInfo
+}
+
+func (tec *TestExecutionClient) Call(endpoint, method string, params ...any) (json.RawMessage, error) {
+	return nil, nil
+}
+
+func (tec *TestExecutionClient) SyncStatus(endpoints []string) []net.ExecutionSyncingStatus {
+	if tec.ssCall.current >= len(tec.ssCall.returnData) {
+		return nil
+	}
+
+	tec.ssCall.current++
+	return tec.ssCall.returnData[tec.ssCall.current-1]
+}
+
+func newTestExecutionClient(ssData [][]net.ExecutionSyncingStatus) *TestExecutionClient {
+	return &TestExecutionClient{
+		ssCall: exSyncStatusInfo{
+			returnData: ssData,
+			current:    0,
+		},
+	}
 }
 
 func fillChannel(data []net.Checkpoint) <-chan net.Checkpoint {
@@ -80,15 +117,15 @@ func populateDb(r db.Repository, existingData []db.Validator) error {
 	return nil
 }
 
-func newTestBeaconClient(vbData [][]net.ValidatorBalance, ssData []net.BeaconSyncingStatus) *TestBeaconClient {
+func newTestBeaconClient(vbData [][]net.ValidatorBalance, ssData [][]net.BeaconSyncingStatus) *TestBeaconClient {
 	return &TestBeaconClient{
 		vbCall: validatorBalanceInfo{
 			returnData: vbData,
 			current:    0,
 		},
-		ssCall: syncStatusInfo{
+		ssCall: bcSyncStatusInfo{
 			returnData: ssData,
-			calls:      0,
+			current:    0,
 		},
 	}
 }
@@ -629,6 +666,249 @@ func TestMonitor(t *testing.T) {
 			if err = cleanup(monitor.repository); err != nil {
 				t.Fatalf("Cleanup failed. Error %v", err)
 			}
+		})
+	}
+}
+
+func TestTrackSync(t *testing.T) {
+	t.Parallel()
+
+	type opts struct {
+		bcEndpoints []string
+		bcData      [][]net.BeaconSyncingStatus
+		exEndpoints []string
+		exData      [][]net.ExecutionSyncingStatus
+		wait        time.Duration
+	}
+
+	tcs := []struct {
+		name      string
+		setupOpts opts
+		want      []EndpointSyncStatus
+	}{
+		{
+			"Test case 1, one consensus node, synced",
+			opts{
+				bcEndpoints: []string{"1"},
+				bcData: [][]net.BeaconSyncingStatus{
+					{
+						net.BeaconSyncingStatus{
+							Endpoint:  "1",
+							IsSyncing: false,
+						},
+					},
+				},
+				wait: time.Millisecond,
+			},
+			[]EndpointSyncStatus{{Endpoint: "1", Synced: true}},
+		},
+		{
+			"Test case 2, one consensus node, not synced",
+			opts{
+				bcEndpoints: []string{"1"},
+				bcData: [][]net.BeaconSyncingStatus{
+					{
+						net.BeaconSyncingStatus{
+							Endpoint:  "1",
+							IsSyncing: true,
+						},
+					},
+				},
+				wait: time.Millisecond,
+			},
+			[]EndpointSyncStatus{{Endpoint: "1", Synced: false}},
+		},
+		{
+			"Test case 3, one execution node, synced",
+			opts{
+				exEndpoints: []string{"1"},
+				exData: [][]net.ExecutionSyncingStatus{
+					{
+						net.ExecutionSyncingStatus{
+							Endpoint:  "1",
+							IsSyncing: false,
+						},
+					},
+				},
+				wait: time.Millisecond,
+			},
+			[]EndpointSyncStatus{{Endpoint: "1", Synced: true}},
+		},
+		{
+			"Test case 4, one execution node, not synced",
+			opts{
+				exEndpoints: []string{"1"},
+				exData: [][]net.ExecutionSyncingStatus{
+					{
+						net.ExecutionSyncingStatus{
+							Endpoint:  "1",
+							IsSyncing: true,
+						},
+					},
+				},
+				wait: time.Millisecond,
+			},
+			[]EndpointSyncStatus{{Endpoint: "1", Synced: false}},
+		},
+		{
+			"Test case 5, two execution nodes, mixed sync status",
+			opts{
+				exEndpoints: []string{"1", "2"},
+				exData: [][]net.ExecutionSyncingStatus{
+					{
+						net.ExecutionSyncingStatus{
+							Endpoint:  "1",
+							IsSyncing: true,
+						},
+						net.ExecutionSyncingStatus{
+							Endpoint:  "2",
+							IsSyncing: false,
+						},
+					},
+				},
+				wait: time.Millisecond,
+			},
+			[]EndpointSyncStatus{{Endpoint: "1", Synced: false}, {Endpoint: "2", Synced: true}},
+		},
+		{
+			"Test case 6, two mixed nodes, mixed sync status",
+			opts{
+				bcEndpoints: []string{"2"},
+				bcData: [][]net.BeaconSyncingStatus{
+					{
+						net.BeaconSyncingStatus{
+							Endpoint:  "2",
+							IsSyncing: true,
+						},
+					},
+				},
+				exEndpoints: []string{"1"},
+				exData: [][]net.ExecutionSyncingStatus{
+					{
+						net.ExecutionSyncingStatus{
+							Endpoint:  "1",
+							IsSyncing: false,
+						},
+					},
+				},
+				wait: time.Millisecond,
+			},
+			[]EndpointSyncStatus{{Endpoint: "2", Synced: false}, {Endpoint: "1", Synced: true}},
+		},
+		{
+			"Test case 7, two mixed nodes, mixed sync status, one wait",
+			opts{
+				bcEndpoints: []string{"2"},
+				bcData: [][]net.BeaconSyncingStatus{
+					{
+						net.BeaconSyncingStatus{
+							Endpoint:  "2",
+							IsSyncing: false,
+						},
+					},
+					{
+						net.BeaconSyncingStatus{
+							Endpoint:  "2",
+							IsSyncing: false,
+						},
+					},
+				},
+				exEndpoints: []string{"1"},
+				exData: [][]net.ExecutionSyncingStatus{
+					{
+						net.ExecutionSyncingStatus{
+							Endpoint:  "1",
+							IsSyncing: true,
+						},
+					},
+					{
+						net.ExecutionSyncingStatus{
+							Endpoint:  "1",
+							IsSyncing: false,
+						},
+					},
+				},
+				wait: time.Millisecond,
+			},
+			[]EndpointSyncStatus{{Endpoint: "2", Synced: true}, {Endpoint: "1", Synced: false}, {Endpoint: "2", Synced: true}, {Endpoint: "1", Synced: true}},
+		},
+		{
+			"Test case 8, one node, no response",
+			opts{
+				bcEndpoints: []string{"1"},
+				bcData:      nil,
+				wait:        time.Millisecond,
+			},
+			[]EndpointSyncStatus{},
+		},
+		{
+			"Test case 9, one consensus node, error",
+			opts{
+				bcEndpoints: []string{"1"},
+				bcData: [][]net.BeaconSyncingStatus{
+					{
+						net.BeaconSyncingStatus{
+							Endpoint:  "1",
+							IsSyncing: false,
+							Error:     errors.New(""),
+						},
+					},
+				},
+				wait: time.Second,
+			},
+			[]EndpointSyncStatus{{Endpoint: "1", Error: errors.New("")}},
+		},
+		{
+			"Test case 10, one execution node, error",
+			opts{
+				exEndpoints: []string{"1"},
+				exData: [][]net.ExecutionSyncingStatus{
+					{
+						net.ExecutionSyncingStatus{
+							Endpoint:  "1",
+							IsSyncing: false,
+							Error:     errors.New(""),
+						},
+					},
+				},
+				wait: time.Second,
+			},
+			[]EndpointSyncStatus{{Endpoint: "1", Error: errors.New("")}},
+		},
+	}
+
+	for _, tc := range tcs {
+		t.Run(tc.name, func(t *testing.T) {
+			monitor := eth2Monitor{
+				beaconClient:    newTestBeaconClient(nil, tc.setupOpts.bcData),
+				executionClient: newTestExecutionClient(tc.setupOpts.exData),
+			}
+
+			done := make(chan struct{})
+			doneList := make(chan struct{})
+			defer close(done)
+			defer close(doneList)
+			result := monitor.TrackSync(done, tc.setupOpts.bcEndpoints, tc.setupOpts.exEndpoints, tc.setupOpts.wait)
+
+			got := make([]EndpointSyncStatus, 0)
+			if len(tc.want) > 0 {
+				go func() {
+					for {
+						for r := range result {
+							got = append(got, r)
+							if len(got) == len(tc.want) {
+								doneList <- struct{}{}
+								return
+							}
+						}
+					}
+				}()
+
+				<-doneList
+			}
+			done <- struct{}{}
+
+			assert.Equalf(t, tc.want, got, "TrackSync(..., %+v, %+v, %v) gave wrong results", tc.setupOpts.bcEndpoints, tc.setupOpts.exEndpoints, tc.setupOpts.wait)
 		})
 	}
 }

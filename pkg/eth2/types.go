@@ -20,4 +20,5 @@ type ConfigOpts struct {
 type EndpointSyncStatus struct {
 	Endpoint string
 	Synced   bool
+	Error    error
 }

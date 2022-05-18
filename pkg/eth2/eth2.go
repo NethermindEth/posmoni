@@ -21,6 +21,8 @@ type eth2Monitor struct {
 	repository db.Repository
 	// Interface for Beacon chain API interaction
 	beaconClient net.BeaconAPI
+	// Interface for ETH1 json-rpc API interaction
+	executionClient net.ExecutionAPI
 	// Configuration options for events subscriber
 	subscriberOpts net.SubscribeOpts
 	// Configuration data for eth2Monitor
@@ -50,8 +52,9 @@ func DefaultEth2Monitor(opts ConfigOpts) (*eth2Monitor, error) {
 	}
 
 	monitor := &eth2Monitor{
-		repository:   &db.SQLiteRepository{DB: ormdb},
-		beaconClient: &net.BeaconClient{RetryDuration: time.Minute},
+		repository:      &db.SQLiteRepository{DB: ormdb},
+		beaconClient:    &net.BeaconClient{RetryDuration: time.Minute},
+		executionClient: &net.ExecutionClient{RetryDuration: time.Minute},
 		subscriberOpts: net.SubscribeOpts{
 			StreamURL:  net.FinalizedCkptTopic,
 			Subscriber: &net.SSESubscriber{},
@@ -84,11 +87,12 @@ returns :-
 a. *eth2Monitor
 Monitor middleware intialized with desired settings
 */
-func NewEth2Monitor(r db.Repository, bc net.BeaconAPI, so net.SubscribeOpts, opts ConfigOpts) (*eth2Monitor, error) {
+func NewEth2Monitor(r db.Repository, bc net.BeaconAPI, ex net.ExecutionAPI, so net.SubscribeOpts, opts ConfigOpts) (*eth2Monitor, error) {
 	monitor := &eth2Monitor{
-		repository:     r,
-		beaconClient:   bc,
-		subscriberOpts: so,
+		repository:      r,
+		beaconClient:    bc,
+		executionClient: ex,
+		subscriberOpts:  so,
 	}
 
 	err := monitor.setup(opts)
@@ -247,28 +251,48 @@ func (e *eth2Monitor) setupAlerts(<-chan net.Checkpoint) {
 
 }
 
-func (e *eth2Monitor) TrackSync(done <-chan struct{}, endpoints []string, wait time.Duration) <-chan EndpointSyncStatus {
+func (e *eth2Monitor) TrackSync(done <-chan struct{}, beaconEndpoints, executionEndpoints []string, wait time.Duration) <-chan EndpointSyncStatus {
 	logFields := log.Fields{configs.Component: "ETH2 Monitor", "Method": "TrackSync"}
-	c := make(chan EndpointSyncStatus, len(endpoints))
+	c := make(chan EndpointSyncStatus, len(executionEndpoints)+len(beaconEndpoints))
 
 	go func() {
-		select {
-		case <-done:
-			return
-		case <-time.After(wait):
-			// TODO: Benchmark this and check what happens if the processing is longer than the wait
-			status := e.beaconClient.SyncStatus(endpoints)
-			for _, s := range status {
-				if s.Error != nil {
-					log.WithFields(logFields).Errorf(CheckingSyncStatusError, s.Endpoint, s.Error)
-					c <- EndpointSyncStatus{Endpoint: s.Endpoint, Synced: false}
-				} else {
-					if s.IsSyncing {
-						log.WithFields(logFields).Infof("Endpoint %s is syncing", s.Endpoint)
+		for {
+			select {
+			case <-done:
+				close(c)
+				return
+			case <-time.After(wait):
+				// TODO: Benchmark this and check what happens if the processing is longer than the wait
+				// Check sync progress of beacon nodes
+				bStatus := e.beaconClient.SyncStatus(beaconEndpoints)
+				for _, s := range bStatus {
+					if s.Error != nil {
+						log.WithFields(logFields).Errorf(CheckingSyncStatusError, s.Endpoint, s.Error)
+						c <- EndpointSyncStatus{Endpoint: s.Endpoint, Error: s.Error}
 					} else {
-						log.WithFields(logFields).Infof("Endpoint %s is synced", s.Endpoint)
+						if s.IsSyncing {
+							log.WithFields(logFields).Infof("Endpoint %s is syncing", s.Endpoint)
+						} else {
+							log.WithFields(logFields).Infof("Endpoint %s is synced", s.Endpoint)
+						}
+						c <- EndpointSyncStatus{Endpoint: s.Endpoint, Synced: !s.IsSyncing}
 					}
-					c <- EndpointSyncStatus{Endpoint: s.Endpoint, Synced: !s.IsSyncing}
+				}
+
+				// Check sync progress of execution nodes. Rule of Three not acomplished yet, so no harm in repetition :)
+				eStatus := e.executionClient.SyncStatus(executionEndpoints)
+				for _, s := range eStatus {
+					if s.Error != nil {
+						log.WithFields(logFields).Errorf(CheckingSyncStatusError, s.Endpoint, s.Error)
+						c <- EndpointSyncStatus{Endpoint: s.Endpoint, Error: s.Error}
+					} else {
+						if s.IsSyncing {
+							log.WithFields(logFields).Infof("Endpoint %s is syncing", s.Endpoint)
+						} else {
+							log.WithFields(logFields).Infof("Endpoint %s is synced", s.Endpoint)
+						}
+						c <- EndpointSyncStatus{Endpoint: s.Endpoint, Synced: !s.IsSyncing}
+					}
 				}
 			}
 		}
