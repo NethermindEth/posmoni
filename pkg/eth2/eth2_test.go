@@ -15,11 +15,21 @@ import (
 	"gorm.io/gorm"
 )
 
+type syncStatusInfo struct {
+	returnData []net.BeaconSyncingStatus
+	calls      int
+}
+
+type validatorBalanceInfo struct {
+	returnData [][]net.ValidatorBalance
+	current    int
+}
+
 // Mock of BeaconAPI.
 type TestBeaconClient struct {
-	data      [][]net.ValidatorBalance
-	current   int
 	endpoints []string
+	vbCall    validatorBalanceInfo
+	ssCall    syncStatusInfo
 }
 
 func (tbc *TestBeaconClient) SetEndpoints(endpoints []string) {
@@ -28,16 +38,16 @@ func (tbc *TestBeaconClient) SetEndpoints(endpoints []string) {
 
 func (tbc *TestBeaconClient) ValidatorBalances(stateID string, validatorIdxs []string) ([]net.ValidatorBalance, error) {
 	// Simulates an iterator
-	if tbc.current >= len(tbc.data) {
+	if tbc.vbCall.current >= len(tbc.vbCall.returnData) {
 		return nil, fmt.Errorf("No more data")
 	}
 
-	if tbc.data[tbc.current] == nil {
+	if tbc.vbCall.returnData[tbc.vbCall.current] == nil {
 		return nil, fmt.Errorf("Intentional error")
 	}
 
-	tbc.current++
-	return tbc.data[tbc.current-1], nil
+	tbc.vbCall.current++
+	return tbc.vbCall.returnData[tbc.vbCall.current-1], nil
 }
 
 func (tbc *TestBeaconClient) Health(endpoints []string) []net.HealthResponse {
@@ -45,7 +55,8 @@ func (tbc *TestBeaconClient) Health(endpoints []string) []net.HealthResponse {
 }
 
 func (tbc *TestBeaconClient) SyncStatus(endpoints []string) []net.BeaconSyncingStatus {
-	return nil
+	tbc.ssCall.calls++
+	return tbc.ssCall.returnData
 }
 
 func fillChannel(data []net.Checkpoint) <-chan net.Checkpoint {
@@ -69,10 +80,16 @@ func populateDb(r db.Repository, existingData []db.Validator) error {
 	return nil
 }
 
-func newTestBeaconClient(data [][]net.ValidatorBalance) *TestBeaconClient {
+func newTestBeaconClient(vbData [][]net.ValidatorBalance, ssData []net.BeaconSyncingStatus) *TestBeaconClient {
 	return &TestBeaconClient{
-		data:    data,
-		current: 0,
+		vbCall: validatorBalanceInfo{
+			returnData: vbData,
+			current:    0,
+		},
+		ssCall: syncStatusInfo{
+			returnData: ssData,
+			calls:      0,
+		},
 	}
 }
 
@@ -84,7 +101,7 @@ func setup(data [][]net.ValidatorBalance, opts net.SubscribeOpts, cfgOpts Config
 
 	ormdb.AutoMigrate(&db.ValidatorORM{})
 
-	monitor, err := NewEth2Monitor(&db.SQLiteRepository{DB: ormdb}, newTestBeaconClient(data), opts, cfgOpts)
+	monitor, err := NewEth2Monitor(&db.SQLiteRepository{DB: ormdb}, newTestBeaconClient(data, nil), &net.ExecutionClient{}, opts, cfgOpts)
 	if err != nil {
 		return nil, fmt.Errorf("Monitor creation failed. Error '%v'", err)
 	}
@@ -490,7 +507,7 @@ func TestSetup(t *testing.T) {
 
 			monitor := &eth2Monitor{
 				repository:     &tc.mock,
-				beaconClient:   newTestBeaconClient([][]net.ValidatorBalance{}),
+				beaconClient:   newTestBeaconClient([][]net.ValidatorBalance{}, nil),
 				subscriberOpts: net.SubscribeOpts{},
 			}
 
