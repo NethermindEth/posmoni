@@ -14,6 +14,7 @@ type initTestCase struct {
 	yml     string
 	file    string
 	env     map[string]string
+	args    []CfgChecker
 	want    eth2Config
 	isError bool
 }
@@ -81,47 +82,143 @@ func TestInit(t *testing.T) {
             validators: [123123, "0x1414fa980b"]
             consensus:
               - "http://153.168.127.111:5052"
-              - "http://154.168.127.221:5052"`,
+              - "http://154.168.127.221:5052"
+            execution: 
+              - "http://133.168.127.111:8545"
+              - "http://122.168.127.221:8545"`,
+			args: []CfgChecker{
+				{Key: Validators, ErrMsg: NoValidatorsFoundError},
+				{Key: Consensus, ErrMsg: NoConsensusFoundError},
+				{Key: Execution, ErrMsg: NoExecutionFoundError},
+			},
 			want: eth2Config{
-				Validators: []string{"123123", "0x1414fa980b"},
-				Consensus:  []string{"http://153.168.127.111:5052", "http://154.168.127.221:5052"},
+				validators: []string{"123123", "0x1414fa980b"},
+				consensus:  []string{"http://153.168.127.111:5052", "http://154.168.127.221:5052"},
+				execution:  []string{"http://133.168.127.111:8545", "http://122.168.127.221:8545"},
 			},
 			isError: false,
 		},
 		{
 			yml: `
             validators: "0x1414fa980b"
-            consensus: "http://153.168.127.111:5052"`,
+            consensus: "http://153.168.127.111:5052"
+            execution: "http://122.168.127.221:8545"`,
+			args: []CfgChecker{
+				{Key: Validators, ErrMsg: NoValidatorsFoundError},
+				{Key: Consensus, ErrMsg: NoConsensusFoundError},
+				{Key: Execution, ErrMsg: NoExecutionFoundError},
+			},
 			want: eth2Config{
-				Validators: []string{"0x1414fa980b"},
-				Consensus:  []string{"http://153.168.127.111:5052"},
+				validators: []string{"0x1414fa980b"},
+				consensus:  []string{"http://153.168.127.111:5052"},
+				execution:  []string{"http://122.168.127.221:8545"},
+			},
+			isError: false,
+		},
+		{
+			yml: `
+            validators: "0x1414fa980b"
+            consensus: "http://153.168.127.111:5052"
+            execution: "http://122.168.127.221:8545"`,
+			args: []CfgChecker{
+				{Key: Validators, ErrMsg: NoValidatorsFoundError},
+				{Key: Consensus, ErrMsg: NoConsensusFoundError},
+			},
+			want: eth2Config{
+				validators: []string{"0x1414fa980b"},
+				consensus:  []string{"http://153.168.127.111:5052"},
 			},
 			isError: false,
 		},
 		{
 			yml: `
             validators: 
-            consensus: "http://153.168.127.111:5052"`,
+            consensus: "http://153.168.127.111:5052"
+            execution: `,
+			args: []CfgChecker{
+				{Key: Validators, ErrMsg: NoValidatorsFoundError},
+				{Key: Consensus, ErrMsg: NoConsensusFoundError},
+				{Key: Execution, ErrMsg: NoExecutionFoundError},
+			},
 			want:    eth2Config{},
+			isError: true,
+		},
+		{
+			yml: `
+            validators: 
+            consensus: "http://153.168.127.111:5052"
+            execution: `,
+			args: []CfgChecker{
+				{Key: Consensus, ErrMsg: NoConsensusFoundError},
+			},
+			want: eth2Config{
+				consensus: []string{"http://153.168.127.111:5052"},
+			},
+			isError: false,
+		},
+		{
+			yml: `
+            validators: "0x1414fa980b"
+            consensus: 
+            execution: `,
+			args: []CfgChecker{
+				{Key: Validators, ErrMsg: NoValidatorsFoundError},
+				{Key: Consensus, ErrMsg: NoConsensusFoundError},
+				{Key: Execution, ErrMsg: NoExecutionFoundError},
+			},
+			want: eth2Config{
+				validators: []string{"0x1414fa980b"},
+			},
 			isError: true,
 		},
 		{
 			yml: `
             validators: "0x1414fa980b"
-            consensus: `,
+            consensus: 
+            execution: `,
+			args: []CfgChecker{
+				{Key: Consensus, ErrMsg: NoConsensusFoundError},
+				{Key: Validators, ErrMsg: NoValidatorsFoundError},
+				{Key: Execution, ErrMsg: NoExecutionFoundError},
+			},
 			want:    eth2Config{},
 			isError: true,
 		},
 		{
 			yml: `
             consensus: `,
+			args: []CfgChecker{
+				{Key: Validators, ErrMsg: NoValidatorsFoundError},
+				{Key: Consensus, ErrMsg: NoConsensusFoundError},
+				{Key: Execution, ErrMsg: NoExecutionFoundError},
+			},
+			want:    eth2Config{},
+			isError: true,
+		},
+		{
+			yml: `
+            consensus: `,
+			args: []CfgChecker{
+				{Key: Consensus, ErrMsg: NoConsensusFoundError},
+			},
+			want:    eth2Config{},
+			isError: true,
+		},
+		{
+			yml: ``,
+			args: []CfgChecker{
+				{Key: Validators, ErrMsg: NoValidatorsFoundError},
+				{Key: Consensus, ErrMsg: NoConsensusFoundError},
+				{Key: Execution, ErrMsg: NoExecutionFoundError},
+			},
 			want:    eth2Config{},
 			isError: true,
 		},
 		{
 			yml:     ``,
+			args:    []CfgChecker{},
 			want:    eth2Config{},
-			isError: true,
+			isError: false,
 		},
 	}
 
@@ -134,7 +231,7 @@ func TestInit(t *testing.T) {
 			viper.SetConfigType("yml")
 			viper.SetConfigName(tc.file)
 
-			got, err := Init()
+			got, err := Init(tc.args)
 
 			descr := fmt.Sprintf("Init() with yml %s", tc.yml)
 			if err = utils.CheckErr(descr, tc.isError, err); err != nil {
@@ -152,10 +249,17 @@ func TestInit(t *testing.T) {
 			env: map[string]string{
 				"PM_VALIDATORS": "123123,0x1414fa980b",
 				"PM_CONSENSUS":  "http://153.168.127.111:5052,http://154.168.127.221:5052",
+				"PM_EXECUTION":  "http://133.168.127.111:8545,http://122.168.127.221:8545",
+			},
+			args: []CfgChecker{
+				{Key: Validators, ErrMsg: NoValidatorsFoundError},
+				{Key: Consensus, ErrMsg: NoConsensusFoundError},
+				{Key: Execution, ErrMsg: NoExecutionFoundError},
 			},
 			want: eth2Config{
-				Validators: []string{"123123", "0x1414fa980b"},
-				Consensus:  []string{"http://153.168.127.111:5052", "http://154.168.127.221:5052"},
+				validators: []string{"123123", "0x1414fa980b"},
+				consensus:  []string{"http://153.168.127.111:5052", "http://154.168.127.221:5052"},
+				execution:  []string{"http://133.168.127.111:8545", "http://122.168.127.221:8545"},
 			},
 			isError: false,
 		},
@@ -164,10 +268,34 @@ func TestInit(t *testing.T) {
 			env: map[string]string{
 				"PM_VALIDATORS": "0x1414fa980b",
 				"PM_CONSENSUS":  "http://153.168.127.111:5052",
+				"PM_EXECUTION":  "http://133.168.127.111:8545",
+			},
+			args: []CfgChecker{
+				{Key: Validators, ErrMsg: NoValidatorsFoundError},
+				{Key: Consensus, ErrMsg: NoConsensusFoundError},
+				{Key: Execution, ErrMsg: NoExecutionFoundError},
 			},
 			want: eth2Config{
-				Validators: []string{"0x1414fa980b"},
-				Consensus:  []string{"http://153.168.127.111:5052"},
+				validators: []string{"0x1414fa980b"},
+				consensus:  []string{"http://153.168.127.111:5052"},
+				execution:  []string{"http://133.168.127.111:8545"},
+			},
+			isError: false,
+		},
+		{
+			yml: skip,
+			env: map[string]string{
+				"PM_VALIDATORS": "0x1414fa980b",
+				"PM_CONSENSUS":  "http://153.168.127.111:5052",
+				"PM_EXECUTION":  "http://133.168.127.111:8545",
+			},
+			args: []CfgChecker{
+				{Key: Validators, ErrMsg: NoValidatorsFoundError},
+				{Key: Execution, ErrMsg: NoExecutionFoundError},
+			},
+			want: eth2Config{
+				validators: []string{"0x1414fa980b"},
+				execution:  []string{"http://133.168.127.111:8545"},
 			},
 			isError: false,
 		},
@@ -176,6 +304,38 @@ func TestInit(t *testing.T) {
 			env: map[string]string{
 				"PM_VALIDATORS": "",
 				"PM_CONSENSUS":  "http://153.168.127.111:5052",
+			},
+			args: []CfgChecker{
+				{Key: Validators, ErrMsg: NoValidatorsFoundError},
+				{Key: Consensus, ErrMsg: NoConsensusFoundError},
+				{Key: Execution, ErrMsg: NoExecutionFoundError},
+			},
+			want:    eth2Config{},
+			isError: true,
+		},
+		{
+			yml: skip,
+			env: map[string]string{
+				"PM_VALIDATORS": "",
+				"PM_CONSENSUS":  "http://153.168.127.111:5052",
+			},
+			args: []CfgChecker{
+				{Key: Consensus, ErrMsg: NoConsensusFoundError},
+			},
+			want: eth2Config{
+				consensus: []string{"http://153.168.127.111:5052"},
+			},
+			isError: false,
+		},
+		{
+			yml: skip,
+			env: map[string]string{
+				"PM_CONSENSUS": "http://153.168.127.111:5052",
+			},
+			args: []CfgChecker{
+				{Key: Validators, ErrMsg: NoValidatorsFoundError},
+				{Key: Consensus, ErrMsg: NoConsensusFoundError},
+				{Key: Execution, ErrMsg: NoExecutionFoundError},
 			},
 			want:    eth2Config{},
 			isError: true,
@@ -185,15 +345,27 @@ func TestInit(t *testing.T) {
 			env: map[string]string{
 				"PM_CONSENSUS": "http://153.168.127.111:5052",
 			},
-			want:    eth2Config{},
-			isError: true,
+			args: []CfgChecker{
+				{Key: Consensus, ErrMsg: NoConsensusFoundError},
+			},
+			want: eth2Config{
+				consensus: []string{"http://153.168.127.111:5052"},
+			},
+			isError: false,
 		},
 		{
 			yml: skip,
 			env: map[string]string{
 				"PM_VALIDATORS": "0x1414fa980b",
 			},
-			want:    eth2Config{},
+			args: []CfgChecker{
+				{Key: Validators, ErrMsg: NoValidatorsFoundError},
+				{Key: Consensus, ErrMsg: NoConsensusFoundError},
+				{Key: Execution, ErrMsg: NoExecutionFoundError},
+			},
+			want: eth2Config{
+				validators: []string{"0x1414fa980b"},
+			},
 			isError: true,
 		},
 		{
@@ -201,6 +373,10 @@ func TestInit(t *testing.T) {
 			env: map[string]string{
 				"PM_VALIDATORS": "0x1414fa980b",
 				"PM_CONSENSUS":  "",
+			},
+			args: []CfgChecker{
+				{Key: Consensus, ErrMsg: NoConsensusFoundError},
+				{Key: Validators, ErrMsg: NoValidatorsFoundError},
 			},
 			want:    eth2Config{},
 			isError: true,
@@ -211,14 +387,30 @@ func TestInit(t *testing.T) {
 				"PM_VALIDATORS": "",
 				"PM_CONSENSUS":  "",
 			},
+			args: []CfgChecker{
+				{Key: Validators, ErrMsg: NoValidatorsFoundError},
+				{Key: Consensus, ErrMsg: NoConsensusFoundError},
+			},
+			want:    eth2Config{},
+			isError: true,
+		},
+		{
+			yml: skip,
+			env: map[string]string{},
+			args: []CfgChecker{
+				{Key: Validators, ErrMsg: NoValidatorsFoundError},
+				{Key: Consensus, ErrMsg: NoConsensusFoundError},
+				{Key: Execution, ErrMsg: NoExecutionFoundError},
+			},
 			want:    eth2Config{},
 			isError: true,
 		},
 		{
 			yml:     skip,
 			env:     map[string]string{},
+			args:    []CfgChecker{},
 			want:    eth2Config{},
-			isError: true,
+			isError: false,
 		},
 	}
 
@@ -227,7 +419,7 @@ func TestInit(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			setupInitTestCase(t, td, &tc)
 
-			got, err := Init()
+			got, err := Init(tc.args)
 
 			descr := fmt.Sprintf("Init() with env %s", tc.env)
 			if err = utils.CheckErr(descr, tc.isError, err); err != nil {

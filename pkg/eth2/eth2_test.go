@@ -349,7 +349,7 @@ func TestGetValidatorBalance(t *testing.T) {
 
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
-			monitor, err := setup(tc.requestData, net.SubscribeOpts{}, ConfigOpts{Config: &eth2Config{Consensus: []string{"1", "2", "3"}}})
+			monitor, err := setup(tc.requestData, net.SubscribeOpts{}, ConfigOpts{Checkers: []CfgChecker{{Key: Consensus, ErrMsg: NoConsensusFoundError, Data: []string{"1", "2", "3"}}}})
 			if err != nil {
 				t.Fatalf("Setup failed. Error %v", err)
 			}
@@ -417,15 +417,15 @@ func TestSetup(t *testing.T) {
 			name: "Test case 1, valid config, prepared configuration data",
 			opts: ConfigOpts{
 				HandleCfg: false,
-				Config: &eth2Config{
-					Validators: []string{"1", "2", "3"},
-					Consensus:  []string{"Endpoint1"},
+				Checkers: []CfgChecker{
+					{Key: Validators, ErrMsg: NoValidatorsFoundError, Data: []string{"1", "2", "3"}},
+					{Key: Consensus, ErrMsg: NoConsensusFoundError, Data: []string{"Endpoint1"}},
 				},
 			},
 			want: &eth2Monitor{
 				config: eth2Config{
-					Validators: []string{"1", "2", "3"},
-					Consensus:  []string{"Endpoint1"},
+					validators: []string{"1", "2", "3"},
+					consensus:  []string{"Endpoint1"},
 				},
 				subscriberOpts: net.SubscribeOpts{Endpoints: []string{"Endpoint1"}},
 			},
@@ -436,12 +436,15 @@ func TestSetup(t *testing.T) {
 			name: "Test case 2, valid config, load configuration data from env, config setup not handled",
 			opts: ConfigOpts{
 				HandleCfg: false,
-				Config:    nil,
+				Checkers: []CfgChecker{
+					{Key: Validators, ErrMsg: NoValidatorsFoundError},
+					{Key: Consensus, ErrMsg: NoConsensusFoundError},
+				},
 			},
 			want: &eth2Monitor{
 				config: eth2Config{
-					Validators: []string{"1", "2", "3"},
-					Consensus:  []string{"Endpoint1"},
+					validators: []string{"1", "2", "3"},
+					consensus:  []string{"Endpoint1"},
 				},
 				subscriberOpts: net.SubscribeOpts{Endpoints: []string{"Endpoint1"}},
 			},
@@ -456,12 +459,15 @@ func TestSetup(t *testing.T) {
 			name: "Test case 3, valid config, load configuration data from env, config setup handled",
 			opts: ConfigOpts{
 				HandleCfg: true,
-				Config:    nil,
+				Checkers: []CfgChecker{
+					{Key: Validators, ErrMsg: NoValidatorsFoundError},
+					{Key: Consensus, ErrMsg: NoConsensusFoundError},
+				},
 			},
 			want: &eth2Monitor{
 				config: eth2Config{
-					Validators: []string{"1", "2", "3"},
-					Consensus:  []string{"Endpoint1"},
+					validators: []string{"1", "2", "3"},
+					consensus:  []string{"Endpoint1"},
 				},
 				subscriberOpts: net.SubscribeOpts{Endpoints: []string{"Endpoint1"}},
 			},
@@ -476,8 +482,9 @@ func TestSetup(t *testing.T) {
 			name: "Test case 4, invalid config (not consensus provided), prepared configuration data",
 			opts: ConfigOpts{
 				HandleCfg: false,
-				Config: &eth2Config{
-					Validators: []string{"1", "2", "3"},
+				Checkers: []CfgChecker{
+					{Key: Validators, ErrMsg: NoValidatorsFoundError, Data: []string{"1", "2", "3"}},
+					{Key: Consensus, ErrMsg: NoConsensusFoundError},
 				},
 			},
 			want:  &eth2Monitor{},
@@ -488,7 +495,10 @@ func TestSetup(t *testing.T) {
 			name: "Test case 5, invalid config, load configuration data from env, config setup not handled",
 			opts: ConfigOpts{
 				HandleCfg: false,
-				Config:    nil,
+				Checkers: []CfgChecker{
+					{Key: Validators, ErrMsg: NoValidatorsFoundError},
+					{Key: Consensus, ErrMsg: NoConsensusFoundError},
+				},
 			},
 			want: &eth2Monitor{},
 			env: map[string]string{
@@ -501,7 +511,10 @@ func TestSetup(t *testing.T) {
 			name: "Test case 6, invalid config, load configuration data from env, config setup handled",
 			opts: ConfigOpts{
 				HandleCfg: true,
-				Config:    nil,
+				Checkers: []CfgChecker{
+					{Key: Validators, ErrMsg: NoValidatorsFoundError},
+					{Key: Consensus, ErrMsg: NoConsensusFoundError},
+				},
 			},
 			want: &eth2Monitor{},
 			env: map[string]string{
@@ -514,15 +527,15 @@ func TestSetup(t *testing.T) {
 			name: "Test case 7, valid config, migration error",
 			opts: ConfigOpts{
 				HandleCfg: false,
-				Config: &eth2Config{
-					Validators: []string{"1", "2", "3"},
-					Consensus:  []string{"Endpoint1"},
+				Checkers: []CfgChecker{
+					{Key: Validators, ErrMsg: NoValidatorsFoundError, Data: []string{"1", "2", "3"}},
+					{Key: Consensus, ErrMsg: NoConsensusFoundError, Data: []string{"Endpoint1"}},
 				},
 			},
 			want: &eth2Monitor{
 				config: eth2Config{
-					Validators: []string{"1", "2", "3"},
-					Consensus:  []string{"Endpoint1"},
+					validators: []string{"1", "2", "3"},
+					consensus:  []string{"Endpoint1"},
 				},
 				subscriberOpts: net.SubscribeOpts{Endpoints: []string{"Endpoint1"}},
 			},
@@ -613,9 +626,9 @@ func TestMonitor(t *testing.T) {
 				},
 				cfgOpts: ConfigOpts{
 					HandleCfg: false,
-					Config: &eth2Config{
-						Validators: []string{"1", "2", "3"},
-						Consensus:  []string{"Endpoint1"},
+					Checkers: []CfgChecker{
+						{Key: Validators, ErrMsg: NoValidatorsFoundError, Data: []string{"1", "2", "3"}},
+						{Key: Consensus, ErrMsg: NoConsensusFoundError, Data: []string{"Endpoint1"}},
 					},
 				},
 			},

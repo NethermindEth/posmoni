@@ -1,7 +1,6 @@
 package eth2
 
 import (
-	"errors"
 	"fmt"
 	"strconv"
 	"time"
@@ -117,31 +116,25 @@ a. error
 Error if any
 */
 func (e *eth2Monitor) setup(opts ConfigOpts) error {
-	if opts.Config != nil {
-		if len(opts.Config.Consensus) == 0 {
-			return errors.New(NoConsensusFoundError)
-		}
-
-		e.config = *opts.Config
-	} else {
-		if opts.HandleCfg {
-			configs.InitConfig()
-		}
-
-		cfg, err := Init()
-		if err != nil {
-			fmt.Println(err)
-			return err
-		}
-		e.config = cfg
+	if opts.HandleCfg {
+		configs.InitConfig()
 	}
 
-	// setup beacon nodes endpoints
-	e.subscriberOpts.Endpoints = e.config.Consensus
-	e.beaconClient.SetEndpoints(e.config.Consensus)
+	cfg, err := Init(opts.Checkers)
+	if err != nil {
+		fmt.Println(err)
+		return err
+	}
+	e.config = cfg
 
-	// setup logger
-	configs.InitLogging()
+	// setup beacon nodes endpoints
+	e.subscriberOpts.Endpoints = e.config.consensus
+	e.beaconClient.SetEndpoints(e.config.consensus)
+
+	if opts.handleLogs {
+		// setup logger
+		configs.InitLogging()
+	}
 
 	log.Debugf("Configuration object: %+v", e.config)
 
@@ -170,7 +163,7 @@ func (e *eth2Monitor) Monitor() ([]chan struct{}, error) {
 	subDone := make(chan struct{})
 	chkps := net.Subscribe(subDone, e.subscriberOpts)
 
-	go e.getValidatorBalance(chkps, e.config.Validators)
+	go e.getValidatorBalance(chkps, e.config.validators)
 	go e.setupAlerts(chkps)
 
 	return []chan struct{}{subDone}, nil
