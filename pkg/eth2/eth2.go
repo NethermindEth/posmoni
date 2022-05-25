@@ -247,6 +247,7 @@ func (e *eth2Monitor) setupAlerts(<-chan net.Checkpoint) {
 func (e *eth2Monitor) TrackSync(done <-chan struct{}, beaconEndpoints, executionEndpoints []string, wait time.Duration) <-chan EndpointSyncStatus {
 	logFields := log.Fields{configs.Component: "ETH2 Monitor", "Method": "TrackSync"}
 	c := make(chan EndpointSyncStatus, len(executionEndpoints)+len(beaconEndpoints))
+	var w time.Duration
 
 	go func() {
 		for {
@@ -254,9 +255,14 @@ func (e *eth2Monitor) TrackSync(done <-chan struct{}, beaconEndpoints, execution
 			case <-done:
 				close(c)
 				return
-			case <-time.After(wait):
+			case <-time.After(w):
+				if w == 0 {
+					// Don't wait the first time
+					w = wait
+				}
 				// TODO: Benchmark this and check what happens if the processing is longer than the wait
 				// Check sync progress of beacon nodes
+				log.WithFields(logFields).Info("Tracking sync progress of consensus nodes...")
 				bStatus := e.beaconClient.SyncStatus(beaconEndpoints)
 				for _, s := range bStatus {
 					if s.Error != nil {
@@ -273,6 +279,7 @@ func (e *eth2Monitor) TrackSync(done <-chan struct{}, beaconEndpoints, execution
 				}
 
 				// Check sync progress of execution nodes. Rule of Three not acomplished yet, so no harm in repetition :)
+				log.WithFields(logFields).Info("Tracking sync progress of execution nodes...")
 				eStatus := e.executionClient.SyncStatus(executionEndpoints)
 				for _, s := range eStatus {
 					if s.Error != nil {

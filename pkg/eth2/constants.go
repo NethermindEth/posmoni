@@ -1,6 +1,7 @@
 package eth2
 
 const (
-	validators = "VALIDATORS"
-	consensus  = "CONSENSUS"
+	Validators = "VALIDATORS"
+	Consensus  = "CONSENSUS"
+	Execution  = "EXECUTION"
 )
