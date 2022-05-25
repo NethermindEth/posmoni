@@ -119,6 +119,7 @@ func (ec *ExecutionClient) SyncStatus(endpoints []string) []ExecutionSyncingStat
 
 			// If it is not syncing (it is synced), result is 'false'
 			ess.IsSyncing = ess.CurrentBlock != ""
+			ess.Endpoint = endpoint
 
 			ch <- ess
 		}(endpoint)
