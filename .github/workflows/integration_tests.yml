@@ -28,7 +28,8 @@ jobs:
 
       - name: Run tests
         env:
-          BC_ENDPOINT: ${{ secrets.BC_ENDPOINT }}
+          PM_BC_ENDPOINTS: ${{ secrets.PM_BC_ENDPOINTS }}
+          PM_EC_ENDPOINT: ${{ secrets.PM_EC_ENDPOINT }}
         run: make codecov-integration-test
 
       - name: Upload coverage to Codecov
