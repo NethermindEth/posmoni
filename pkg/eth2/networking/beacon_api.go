@@ -6,7 +6,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/NethermindEth/posmoni/configs"
 	"github.com/NethermindEth/posmoni/internal/utils"
+	log "github.com/sirupsen/logrus"
 )
 
 // BeaconClient : Struct BeaconAPI interface implementation
@@ -79,4 +81,122 @@ func (bc *BeaconClient) ValidatorBalances(stateID string, validatorIdxs []string
 	}
 
 	return balances.Data, nil
+}
+
+/*
+Health :
+Health check to the given endpoints using the API method '/eth/v1/beacon/health'.
+
+params :-
+a. endpoints []string
+Endpoints to check
+
+returns :-
+a. []HealthResponse
+Health responses from the given endpoints
+*/
+func (bc *BeaconClient) Health(endpoints []string) []HealthResponse {
+	logFields := log.Fields{configs.Component: "BeaconClient", "Method": "Health"}
+	if len(endpoints) == 0 {
+		log.WithFields(logFields).Warn("No endpoints provided for health check")
+		return nil
+	}
+
+	ch := make(chan HealthResponse, len(endpoints))
+	defer close(ch)
+
+	for _, endpoint := range endpoints {
+		go func(endpoint string) {
+			url := fmt.Sprintf("%s%s", endpoint, "/eth/v1/beacon/health")
+			resp, err := utils.GetRequest(url, bc.RetryDuration)
+			if err != nil {
+				ch <- HealthResponse{Endpoint: endpoint, Healthy: false, Error: err}
+				return
+			}
+
+			switch resp.StatusCode {
+			case 200:
+				ch <- HealthResponse{Endpoint: endpoint, Healthy: true, Error: nil}
+			case 206:
+				ch <- HealthResponse{Endpoint: endpoint, Healthy: false, Error: fmt.Errorf(BadResponseError, url, resp.StatusCode, "Node is syncing but can serve incomplete data")}
+			case 503:
+				ch <- HealthResponse{Endpoint: endpoint, Healthy: false, Error: fmt.Errorf(BadResponseError, url, resp.StatusCode, "Node not initialized or having issues")}
+			default:
+				ch <- HealthResponse{Endpoint: endpoint, Healthy: false, Error: fmt.Errorf(BadResponseError, url, resp.StatusCode, "")}
+			}
+
+		}(endpoint)
+	}
+
+	responses := make([]HealthResponse, 0)
+	for i := 0; i < len(endpoints); i++ {
+		responses = append(responses, <-ch)
+	}
+
+	return responses
+}
+
+/*
+SyncStatus :
+Check sync status of the given endpoints using the API method '/eth/v1/node/syncing'.
+
+params :-
+a. endpoints []string
+Endpoints to check
+
+returns :-
+a. []BeaconSyncingStatus
+Sync status of the given endpoints
+*/
+func (bc *BeaconClient) SyncStatus(endpoints []string) []BeaconSyncingStatus {
+	logFields := log.Fields{configs.Component: "BeaconClient", "Method": "SyncStatus"}
+	if len(endpoints) == 0 {
+		log.WithFields(logFields).Warn("No endpoints provided for health check")
+		return nil
+	}
+
+	ch := make(chan BeaconSyncingStatus, len(endpoints))
+	defer close(ch)
+
+	for _, endpoint := range endpoints {
+		go func(endpoint string) {
+			url := fmt.Sprintf("%s%s", endpoint, "/eth/v1/node/syncing")
+			resp, err := utils.GetRequest(url, bc.RetryDuration)
+			if err != nil {
+				ch <- BeaconSyncingStatus{Endpoint: endpoint, Error: err}
+				return
+			}
+
+			defer resp.Body.Close()
+			contents, err := ioutil.ReadAll(resp.Body)
+			if err != nil {
+				ch <- BeaconSyncingStatus{Endpoint: endpoint, Error: fmt.Errorf(ReadBodyError, err)}
+				return
+			}
+
+			if resp.StatusCode != 200 {
+				ch <- BeaconSyncingStatus{Endpoint: endpoint, Error: fmt.Errorf(BadResponseError, url, resp.StatusCode, string(contents))}
+				return
+			}
+
+			var ssr BeaconSyncingStatusResponse
+			ssr, err = unmarshalData(contents, ssr)
+			if err != nil {
+				ch <- BeaconSyncingStatus{Endpoint: endpoint, Error: err}
+				return
+			}
+
+			ss := ssr.Data
+			ss.Endpoint = endpoint
+			ch <- ss
+
+		}(endpoint)
+	}
+
+	responses := make([]BeaconSyncingStatus, 0)
+	for i := 0; i < len(endpoints); i++ {
+		responses = append(responses, <-ch)
+	}
+
+	return responses
 }

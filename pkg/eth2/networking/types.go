@@ -1,5 +1,9 @@
 package networking
 
+import (
+	"encoding/json"
+)
+
 // Checkpoint : Struct Represent event data from beacon chain
 type Checkpoint struct {
 	Block string `json:"block"`
@@ -26,4 +30,51 @@ type ValidatorBalanceList struct {
 type ValidatorBalance struct {
 	Index   string `json:"index"`
 	Balance string `json:"balance"`
+}
+
+// HealthResponse : Struct Represent response information from 'http://<endpoint>/eth/v1/beacon/health' API call
+type HealthResponse struct {
+	Endpoint string
+	Healthy  bool
+	Error    error
+}
+
+// BeaconSyncingStatusResponse : Struct Represent response body from 'http://<endpoint>/eth/v1/node/syncing' API call
+type BeaconSyncingStatusResponse struct {
+	Data BeaconSyncingStatus `json:"data"`
+}
+
+// BeaconSyncingStatus : Struct Represent response data from 'http://<endpoint>/eth/v1/node/syncing' API call
+type BeaconSyncingStatus struct {
+	HeadSlot     string `json:"head_slot"`
+	SyncDistance string `json:"sync_distance"`
+	IsSyncing    bool   `json:"is_syncing"`
+	Error        error
+	Endpoint     string
+}
+
+// eth1Request : Struct Represent a ETH1 json-rpc method call body
+type eth1Request struct {
+	ID      int           `json:"id"`
+	JSONRPC string        `json:"jsonrpc"`
+	Method  string        `json:"method"`
+	Params  []interface{} `json:"params"`
+}
+
+// eth1Request : Struct Represent a ETH1 json-rpc method response body
+type eth1Response struct {
+	ID      int             `json:"id"`
+	JSONRPC string          `json:"jsonrpc"`
+	Result  json.RawMessage `json:"result"`
+	Error   *Eth1Error      `json:"error"`
+}
+
+// ExecutionSyncingStatus : Struct Represent response data from 'eth_syncing' json-rpc API call
+type ExecutionSyncingStatus struct {
+	StartingBlock string `json:"startingBloc"`
+	CurrentBlock  string `json:"currentBlock"`
+	HighestBlock  string `json:"highestBlock"`
+	IsSyncing     bool
+	Error         error
+	Endpoint      string
 }

@@ -25,20 +25,21 @@ none
 */
 func (s SSESubscriber) Listen(url string, ch chan<- Checkpoint) {
 	// notest
-	log.Info("Subscribing to: ", url)
+	logFields := log.Fields{configs.Component: "SSESubscriber", "Method": "Listen"}
+	log.WithFields(logFields).Info("Subscribing to: ", url)
 
 	client := sse.NewClient(url)
 	client.SubscribeRaw(func(msg *sse.Event) {
 		if len(msg.Data) == 0 {
-			log.WithField(configs.Component, "ETH2").Debug("Got empty event")
+			log.WithFields(logFields).Debug("Got empty event")
 			return
 		}
 
-		log.WithField(configs.Component, "ETH2").Infof("Got event data: %v", string(msg.Data))
+		log.WithFields(logFields).Infof("Got event data: %v", string(msg.Data))
 
 		chkp, err := unmarshalData(msg.Data, Checkpoint{})
 		if err != nil {
-			log.WithField(configs.Component, "ETH2").Errorf(parseDataError, err)
+			log.WithFields(logFields).Errorf(parseDataError, err)
 		} else {
 			ch <- chkp
 		}
@@ -60,6 +61,7 @@ a. <-chan Checkpoint
 Channel to get new checkpoints from
 */
 func Subscribe(done <-chan struct{}, sub SubscribeOpts) <-chan Checkpoint {
+	logFields := log.Fields{"Method": "Subscribe"}
 	c := make(chan Checkpoint)
 
 	go func() {
@@ -70,7 +72,7 @@ func Subscribe(done <-chan struct{}, sub SubscribeOpts) <-chan Checkpoint {
 		}
 
 		<-done
-		log.Info("Subscription to ", sub.StreamURL, " ended")
+		log.WithFields(logFields).Info("Subscription to ", sub.StreamURL, " ended")
 		close(c)
 	}()
 

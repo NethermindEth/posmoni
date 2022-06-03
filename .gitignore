@@ -15,3 +15,4 @@ coverage/*
 # vendor/
 
 build/*
+setup-env.sh

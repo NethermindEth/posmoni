@@ -17,10 +17,11 @@ func TestListen(t *testing.T) {
 	ch := make(chan Checkpoint)
 	defer close(ch)
 
-	endpoint, exists := os.LookupEnv("BC_ENDPOINT")
+	raw, exists := os.LookupEnv("PM_BC_ENDPOINTS")
 	if !exists {
-		t.Fatal("BC_ENDPOINT not set")
+		t.Fatal("PM_BC_ENDPOINTS not set")
 	}
+	endpoint := strings.Split(raw, ",")[0]
 
 	go sub.Listen(endpoint+FinalizedCkptTopic, ch)
 
