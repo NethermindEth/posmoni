@@ -34,6 +34,7 @@ func GetRequest(url string, retryDuration time.Duration) (*http.Response, error)
 	b.MaxElapsedTime = retryDuration
 
 	err := backoff.Retry(func() (err error) {
+		// To make a request with custom headers, use NewRequest and Client.Do.
 		response, err = http.Get(url)
 		if err != nil {
 			log.WithFields(logFields).Errorf("request failed. Error: %v", err)
