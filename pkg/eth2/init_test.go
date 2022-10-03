@@ -76,6 +76,8 @@ func cleanInitTestCase() {
 func TestInit(t *testing.T) {
 	td := t.TempDir()
 
+	//TODO: Add test cases with checker.Data populate
+
 	tcs := []initTestCase{
 		{
 			yml: `

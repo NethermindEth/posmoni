@@ -120,6 +120,7 @@ func (e *eth2Monitor) setup(opts ConfigOpts) error {
 		configs.InitConfig()
 	}
 
+	// TODO: Handle empty opts for uses cases like TrackSync only
 	cfg, err := Init(opts.Checkers)
 	if err != nil {
 		fmt.Println(err)
