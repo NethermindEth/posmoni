@@ -33,15 +33,15 @@ linters:
     - exportloopref
     - forbidigo
     - forcetypeassert
-    - funlen
+#    - funlen  # Example: Function 'TestGetValidatorBalance' is too long (206 > 60)
     - gci
-    - gochecknoglobals
-    - gochecknoinits
+#    - gochecknoglobals  # globals are fine for now
+#    - gochecknoinits  # disable for now
     - gocognit
     - goconst
     - gocritic
     - gocyclo
-    - godot
+#    - godot  # Example: Comment should end in a period
     - godox
     - goerr113
     - gofmt
@@ -60,7 +60,7 @@ linters:
     - ineffassign
     - interfacebloat
     - ireturn
-    - lll
+#    - lll  # disable line length for now
     - loggercheck
     - maintidx
     - makezero
@@ -96,7 +96,7 @@ linters:
     - unparam
     - unused
     - usestdlibvars
-    - varnamelen
+#    - varnamelen  # example: parameter name 'rw' is too short for the scope of its usage
 #    - wastedassign is disabled because of generics
     - whitespace
     - wrapcheck
