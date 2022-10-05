@@ -30,7 +30,7 @@ jobs:
           echo ::set-output name=docker_image::${{ github.event.inputs.repo }}
           echo ::set-output name=dockerfile::${{ github.event.inputs.dockerfile }}
           echo ::set-output name=TAG::${{ github.event.inputs.tag }}
-      - name: Set up QEMU
+      - name: Setting up QEMU
         uses: docker/setup-qemu-action@v2
       - name: Setting up Docker Buildx
         id: buildx
