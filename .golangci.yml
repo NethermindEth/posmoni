@@ -5,31 +5,102 @@ run:
   tests: true
   skip-dirs-use-default: true
   skip-files:
+  go: '1.19'
 
 linters:
   disable-all: true
   enable:
+    - asasalint
+    - asciicheck
+    - bidichk
+    - bodyclose
+    - containedctx
+    - contextcheck
+    - cyclop
+    - decorder
+    - depguard
+    - dogsled
+    - dupl
+    - dupword
+    - durationcheck
+    - errcheck
+    - errchkjson
+    - errname
+    - errorlint
+    - execinquery
+    - exhaustive
+    - exhaustruct
+    - exportloopref
+    - forbidigo
+    - forcetypeassert
+    - funlen
+    - gci
+    - gochecknoglobals
+    - gochecknoinits
+    - gocognit
     - goconst
+    - gocritic
+    - gocyclo
+    - godot
+    - godox
+    - goerr113
+    - gofmt
+    - gofumpt
+    - goheader
     - goimports
+    - gomnd
+    - gomoddirectives
+    - gomodguard
+    - goprintffuncname
+    - gosec
     - gosimple
     - govet
+    - grouper
+    - importas
     - ineffassign
-    - misspell
-    - unconvert
-    - typecheck
-    - unused
-    - staticcheck
-    - bidichk
-    - durationcheck
-    - exportloopref
-    - whitespace
-    - errcheck
-    - contextcheck
-    - errchkjson
-    - errorlint
-    - exhaustive
+    - interfacebloat
+    - ireturn
+    - lll
+    - loggercheck
+    - maintidx
     - makezero
+    - misspell
+    - nakedret
+    - nestif
     - nilerr
+    - nilnil
+    - nlreturn
+    - noctx
+    - nolintlint
+    - nonamedreturns
+    - nosprintfhostport
+    - paralleltest
+    - prealloc
+    - predeclared
+    - promlinter
+    - reassign
+    - revive
+#    - rowserrcheck is disabled because of generics
+#    - sqlclosecheck is disabled because of generics
+    - staticcheck
+#    - structcheck is disabled because of generics
+    - stylecheck
+    - tagliatelle
+    - tenv
+    - testableexamples
+    - testpackage
+    - thelper
+    - tparallel
+    - typecheck
+    - unconvert
+    - unparam
+    - unused
+    - usestdlibvars
+    - varnamelen
+#    - wastedassign is disabled because of generics
+    - whitespace
+    - wrapcheck
+    - wsl
 
 linters-settings:
   gofmt:
