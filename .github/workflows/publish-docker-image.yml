@@ -1,4 +1,4 @@
-name: 'Build Docker image and publish to Docker Hub'
+name: 'docker build and publish'
 
 on:
   workflow_dispatch:
@@ -21,10 +21,10 @@ jobs:
     if: github.repository_owner == 'NethermindEth'
     runs-on: ubuntu-latest
     steps:
-      - name: Checking out repository
+      - name: Check out repository
         uses: actions/checkout@v3
 
-      - name: Settings
+      - name: Set up settings
         id: settings
         run: |
           echo ::set-output name=docker_username::${{ secrets.DOCKER_USERNAME }}
@@ -32,10 +32,10 @@ jobs:
           echo ::set-output name=dockerfile::${{ github.event.inputs.dockerfile }}
           echo ::set-output name=TAG::${{ github.event.inputs.tag }}
 
-      - name: Setting up QEMU
+      - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
 
-      - name: Setting up Docker Buildx
+      - name: Set up Docker Buildx
         id: buildx
         uses: docker/setup-buildx-action@v2
 
@@ -45,7 +45,7 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Build and push
+      - name: Build and push Docker Image
         uses: docker/build-push-action@v3
         with:
           builder: ${{ steps.buildx.outputs.name }}
