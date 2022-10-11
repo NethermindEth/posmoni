@@ -5,6 +5,7 @@ go 1.19
 require (
 	github.com/antonfisher/nested-logrus-formatter v1.3.1
 	github.com/cenkalti/backoff/v4 v4.1.2
+	github.com/prometheus/client_golang v1.13.0
 	github.com/r3labs/sse/v2 v2.7.7
 	github.com/sirupsen/logrus v1.8.1
 	github.com/spf13/cobra v1.4.0
@@ -30,7 +31,6 @@ require (
 	github.com/mitchellh/mapstructure v1.4.3 // indirect
 	github.com/pelletier/go-toml v1.9.4 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
-	github.com/prometheus/client_golang v1.13.0 // indirect
 	github.com/prometheus/client_model v0.2.0 // indirect
 	github.com/prometheus/common v0.37.0 // indirect
 	github.com/prometheus/procfs v0.8.0 // indirect
