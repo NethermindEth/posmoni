@@ -5,4 +5,5 @@ const (
 	RequestFailedError = "GET %s failed. Error: %v"
 	ReadBodyError      = "read contents of response failed. Error: %v"
 	BadResponseError   = "GET %s failed. Status code: %d. Body: %s"
+	SSESubscribeError  = "Subscribing to SSE events on %v failed"
 )
