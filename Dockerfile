@@ -8,7 +8,7 @@ RUN go mod download
 COPY . .
 RUN CGO_ENABLED=1 go build -a -ldflags '-linkmode external -extldflags "-static"' -o /posmoni cmd/main.go
 
-FROM golang:1.19-bullseye
+FROM debug
 WORKDIR /
 
 COPY --from=build /posmoni /posmoni
