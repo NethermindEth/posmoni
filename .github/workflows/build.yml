@@ -37,3 +37,9 @@ jobs:
           git diff "$GITHUB_SHA"
           exit 1
         fi
+
+    - name: golangci-lint
+      uses: golangci/golangci-lint-action@v3
+      with:
+        version: latest
+        only-new-issues: true

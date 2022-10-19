@@ -29,6 +29,13 @@ func TestValidatorBalances(t *testing.T) {
 	}
 	endpoint := strings.Split(raw, ",")[0]
 
+	beaconClient := BeaconClient{
+		Endpoint:      endpoint,
+		RetryDuration: time.Second,
+	}
+	syncingStatus := beaconClient.SyncStatus([]string{endpoint})
+	headSlot := syncingStatus[0].HeadSlot
+
 	tcs := []struct {
 		name          string
 		url           string
@@ -37,7 +44,7 @@ func TestValidatorBalances(t *testing.T) {
 		isError       bool
 	}{
 		{
-			"Test Case 1, empty endpoint",
+			"Test Case 1, empty endpoint, head slot",
 			"",
 			callArgs{
 				"head",
@@ -47,7 +54,7 @@ func TestValidatorBalances(t *testing.T) {
 			true,
 		},
 		{
-			"Test Case 2, bad endpoint",
+			"Test Case 2, bad endpoint, head slot",
 			"http://localhost:8080",
 			callArgs{
 				"head",
@@ -57,7 +64,7 @@ func TestValidatorBalances(t *testing.T) {
 			true,
 		},
 		{
-			"Test Case 3, good endpoint, head, empty validatorIdxs",
+			"Test Case 3, good endpoint, head slot, empty validatorIdxs",
 			endpoint,
 			callArgs{
 				"head",
@@ -67,30 +74,20 @@ func TestValidatorBalances(t *testing.T) {
 			false,
 		},
 		{
-			"Test Case 4, good endpoint, slot 100",
+			fmt.Sprintf("Test Case 4, good endpoint, slot %s", headSlot),
 			endpoint,
 			callArgs{
-				"100",
+				headSlot,
 				[]string{"1", "2", "3"},
 			},
 			true,
 			false,
 		},
 		{
-			"Test Case 5, good endpoint, head",
+			fmt.Sprintf("Test Case 5, good endpoint, slot %s, bad validators", headSlot),
 			endpoint,
 			callArgs{
-				"100",
-				[]string{"1", "2", "3"},
-			},
-			true,
-			false,
-		},
-		{
-			"Test Case 5, good endpoint, head, bad validators",
-			endpoint,
-			callArgs{
-				"100",
+				headSlot,
 				[]string{"1ad", "ttt", "0xwwww", "0x"},
 			},
 			false,
