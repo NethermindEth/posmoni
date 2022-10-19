@@ -1,0 +1,6 @@
+logs:
+  logLevel: DEBUG
+validators: [1,2,3]
+validators_external_http: http://localhost:6174/api/v1/eth2/publicKeys
+consensus: http://localhost:5052
+execution: http://localhost:8551
