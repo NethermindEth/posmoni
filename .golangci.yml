@@ -1,0 +1,122 @@
+# This file configures github.com/golangci/golangci-lint.
+
+run:
+  timeout: 20m
+  tests: true
+  skip-dirs-use-default: true
+  skip-files:
+  go: '1.19'
+
+linters:
+  disable-all: true
+  enable:
+    - asasalint
+    - asciicheck
+    - bidichk
+    - bodyclose
+    - containedctx
+    - contextcheck
+    - cyclop
+    - decorder
+    - depguard
+    - dogsled
+    - dupl
+    - dupword
+    - durationcheck
+    - errcheck
+    - errchkjson
+    - errname
+    - errorlint
+    - execinquery
+    - exhaustive
+    - exhaustruct
+    - exportloopref
+    - forbidigo
+    - forcetypeassert
+#    - funlen  # Example: Function 'TestGetValidatorBalance' is too long (206 > 60)
+    - gci
+#    - gochecknoglobals  # globals are fine for now
+#    - gochecknoinits  # disable for now
+    - gocognit
+    - goconst
+    - gocritic
+    - gocyclo
+#    - godot  # Example: Comment should end in a period
+    - godox
+    - goerr113
+    - gofmt
+    - gofumpt
+    - goheader
+    - goimports
+    - gomnd
+    - gomoddirectives
+    - gomodguard
+    - goprintffuncname
+    - gosec
+    - gosimple
+    - govet
+    - grouper
+    - importas
+    - ineffassign
+    - interfacebloat
+    - ireturn
+#    - lll  # disable line length for now
+    - loggercheck
+    - maintidx
+    - makezero
+    - misspell
+    - nakedret
+    - nestif
+    - nilerr
+    - nilnil
+    - nlreturn
+    - noctx
+    - nolintlint
+    - nonamedreturns
+    - nosprintfhostport
+    - paralleltest
+    - prealloc
+    - predeclared
+    - promlinter
+    - reassign
+    - revive
+#    - rowserrcheck is disabled because of generics
+#    - sqlclosecheck is disabled because of generics
+    - staticcheck
+#    - structcheck is disabled because of generics
+    - stylecheck
+    - tagliatelle
+    - tenv
+    - testableexamples
+    - testpackage
+    - thelper
+    - tparallel
+    - typecheck
+    - unconvert
+    - unparam
+    - unused
+    - usestdlibvars
+#    - varnamelen  # example: parameter name 'rw' is too short for the scope of its usage
+#    - wastedassign is disabled because of generics
+    - whitespace
+    - wrapcheck
+    - wsl
+
+linters-settings:
+  gofmt:
+    simplify: true
+  goconst:
+    min-len: 3 # minimum length of string constant
+    min-occurrences: 6 # minimum number of occurrences
+
+issues:
+  exclude-rules:
+      - path: example/file.go
+        linters:
+          - deadcode
+          - staticcheck
+  exclude:
+    - 'SA1019: event.TypeMux is deprecated: use Feed'
+    - 'SA1019: strings.Title is deprecated'
+    - 'SA1019: strings.Title has been deprecated since Go 1.18 and an alternative has been available since Go 1.0: The rule Title uses for word boundaries does not handle Unicode punctuation properly. Use golang.org/x/text/cases instead.'
+    - 'SA1029: should not use built-in type string as key for value'
