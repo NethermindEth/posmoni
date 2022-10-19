@@ -542,6 +542,41 @@ func TestSetup(t *testing.T) {
 			isErr: true,
 			mock:  repositoryMock{migrationError: true, expectedMigrationCalls: 1},
 		},
+		{
+			name: "Test case 8, valid config, prepared configuration data, optional false",
+			opts: ConfigOpts{
+				HandleCfg: false,
+				Checkers: []CfgChecker{
+					{Key: Validators, ErrMsg: NoValidatorsFoundError, Data: []string{"1", "2", "3"}, Optional: false},
+					{Key: Consensus, ErrMsg: NoConsensusFoundError, Data: []string{"Endpoint1"}, Optional: false},
+				},
+			},
+			want: &eth2Monitor{
+				config: eth2Config{
+					validators: []string{"1", "2", "3"},
+					consensus:  []string{"Endpoint1"},
+				},
+				subscriberOpts: net.SubscribeOpts{Endpoints: []string{"Endpoint1"}},
+			},
+			isErr: false,
+			mock:  repositoryMock{migrationError: false, expectedMigrationCalls: 1},
+		},
+		{
+			name: "Test case 9, valid config, prepared configuration data, optional true",
+			opts: ConfigOpts{
+				HandleCfg: false,
+				Checkers: []CfgChecker{
+					{Key: Validators, ErrMsg: NoValidatorsFoundError, Optional: true},
+					{Key: Consensus, ErrMsg: NoConsensusFoundError, Optional: true},
+				},
+			},
+			want: &eth2Monitor{
+				config:         eth2Config{},
+				subscriberOpts: net.SubscribeOpts{},
+			},
+			isErr: false,
+			mock:  repositoryMock{migrationError: false, expectedMigrationCalls: 1},
+		},
 	}
 
 	for _, tc := range tcs {

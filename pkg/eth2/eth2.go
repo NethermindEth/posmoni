@@ -66,7 +66,8 @@ func DefaultEth2Monitor(opts ConfigOpts) (*eth2Monitor, error) {
 		Checkers: []CfgChecker{
 			{Key: Execution, ErrMsg: NoExecutionFoundError},
 			{Key: Consensus, ErrMsg: NoConsensusFoundError},
-			{Key: Validators, ErrMsg: NoValidatorsFoundError},
+			{Key: Validators, ErrMsg: NoValidatorsFoundError, Optional: true},
+			{Key: ValidatorsExternalHttp, Optional: true},
 		},
 	}
 
