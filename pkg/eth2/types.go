@@ -4,6 +4,8 @@ package eth2
 type eth2Config struct {
 	// List of validator addresses or public index to monitor
 	validators []string
+	// List of validator addresses or public index to monitor fetched from http
+	validatorsExternalHttps []string
 	// List of consensus nodes from which to interact with Beacon chain API
 	consensus []string
 	// List of execution nodes from which to interact with Ethereum json-rpc API
