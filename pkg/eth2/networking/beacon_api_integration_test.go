@@ -70,7 +70,7 @@ func TestValidatorBalances(t *testing.T) {
 				"head",
 				[]string{},
 			},
-			true,
+			false,
 			false,
 		},
 		{
