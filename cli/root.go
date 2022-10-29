@@ -17,8 +17,11 @@ package cli
 
 // notest
 import (
+	"net/http"
 	"os"
 
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 
 	"github.com/NethermindEth/posmoni/configs"
@@ -47,4 +50,12 @@ func init() {
 	cobra.OnInitialize(configs.InitConfig)
 
 	RootCmd.PersistentFlags().StringVar(&configs.CfgFile, "config", "", "config file (default is $HOME/.posmoni.yaml)")
+
+	go func() {
+		http.Handle("/metrics", promhttp.Handler())
+		err := http.ListenAndServe(":2112", nil)
+		if err != nil {
+			log.Fatal(err)
+		}
+	}()
 }

@@ -1,8 +1,10 @@
 package networking
 
 import (
+	"net/http"
+
 	"github.com/NethermindEth/posmoni/configs"
-	sse "github.com/r3labs/sse/v2"
+	"github.com/r3labs/sse/v2"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -28,8 +30,14 @@ func (s SSESubscriber) Listen(url string, ch chan<- Checkpoint) {
 	logFields := log.Fields{configs.Component: "SSESubscriber", "Method": "Listen"}
 	log.WithFields(logFields).Info("Subscribing to: ", url)
 
+	// smoke test
+	_, err := http.Get(url)
+	if err != nil {
+		log.WithFields(logFields).Errorf(RequestFailedError, url, err)
+	}
+
 	client := sse.NewClient(url)
-	client.SubscribeRaw(func(msg *sse.Event) {
+	err = client.SubscribeRaw(func(msg *sse.Event) {
 		if len(msg.Data) == 0 {
 			log.WithFields(logFields).Debug("Got empty event")
 			return
@@ -44,6 +52,9 @@ func (s SSESubscriber) Listen(url string, ch chan<- Checkpoint) {
 			ch <- chkp
 		}
 	})
+	if err != nil {
+		log.WithFields(logFields).Errorf(SSESubscribeError, err)
+	}
 }
 
 /*

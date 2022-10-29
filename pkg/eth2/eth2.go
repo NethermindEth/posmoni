@@ -8,6 +8,7 @@ import (
 	"github.com/NethermindEth/posmoni/configs"
 	"github.com/NethermindEth/posmoni/pkg/eth2/db"
 	net "github.com/NethermindEth/posmoni/pkg/eth2/networking"
+	"github.com/prometheus/client_golang/prometheus"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 
@@ -57,6 +58,15 @@ func DefaultEth2Monitor(opts ConfigOpts) (*eth2Monitor, error) {
 		subscriberOpts: net.SubscribeOpts{
 			StreamURL:  net.FinalizedCkptTopic,
 			Subscriber: &net.SSESubscriber{},
+		},
+	}
+
+	opts = ConfigOpts{
+		HandleCfg: false,
+		Checkers: []CfgChecker{
+			{Key: Execution, ErrMsg: NoExecutionFoundError},
+			{Key: Consensus, ErrMsg: NoConsensusFoundError},
+			{Key: Validators, ErrMsg: NoValidatorsFoundError},
 		},
 	}
 
@@ -213,6 +223,8 @@ func (e *eth2Monitor) getValidatorBalance(chkps <-chan net.Checkpoint, validator
 				log.WithFields(logFields).Errorf(ParseUintError, err)
 				continue
 			}
+
+			metricsValidatorBalance.With(prometheus.Labels{ValidatorLabel: vb.Index}).Set(float64(newBalance))
 
 			// Get validator from db
 			v, err := e.repository.FirstOrCreate(db.Validator{Idx: idx, Balance: newBalance})

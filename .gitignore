@@ -16,3 +16,6 @@ coverage/*
 
 build/*
 setup-env.sh
+
+# Ignore GoLand files
+.idea/
