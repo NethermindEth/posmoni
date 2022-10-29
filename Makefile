@@ -23,11 +23,11 @@ codecov-test: ## unit tests with coverage using the courtney tool
 	@go tool cover -html=coverage/coverage.out -o coverage/coverage.html
 
 integration-tests: ## unit and integration tests
-	@go test -timeout 7m -tags=integration ./...
+	@go test -timeout 15m -tags=integration ./...
 
 integration-test-cover: ## unit and integration tests with coverage
 	@mkdir -p coverage
-	@go test -timeout 7m -tags=integration -coverprofile=coverage/coverage.out -covermode=count ./...
+	@go test -timeout 15m -tags=integration -coverprofile=coverage/coverage.out -covermode=count ./...
 	@go tool cover -html=coverage/coverage.out -o coverage/coverage.html
 
 codecov-integration-test: ## unit and integration tests with coverage using the courtney tool
