@@ -74,7 +74,13 @@ func (s *Server) trackSync(w http.ResponseWriter, r *http.Request) {
 
 	done := make(chan struct{})
 	results := monitor.TrackSync(done, infoVal.ConsensusUrls, infoVal.ExecutionUrls, infoVal.Wait)
-
+	go func() {
+		messageType, _, _ := conn.ReadMessage()
+		switch messageType {
+		case websocket.CloseMessage:
+			close(done)
+		}
+	}()
 	for r := range results {
 		if r.Error != nil {
 			log.Errorf("Endpoint %s returned an error. Error: %v", r.Endpoint, r.Error)
