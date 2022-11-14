@@ -78,6 +78,7 @@ func (s *Server) trackSync(w http.ResponseWriter, r *http.Request) {
 		messageType, _, _ := conn.ReadMessage()
 		switch messageType {
 		case websocket.CloseMessage:
+			done <- struct{}{}
 			close(done)
 		}
 	}()
@@ -87,10 +88,12 @@ func (s *Server) trackSync(w http.ResponseWriter, r *http.Request) {
 		}
 		msg, err := json.Marshal(r)
 		if err != nil {
+			log.Errorf("Error marshaling response: %v", err)
 			return
 		}
 		err = conn.WriteMessage(websocket.TextMessage, msg)
 		if err != nil {
+			log.Errorf("Error writing message: %v", err)
 			return
 		}
 	}
