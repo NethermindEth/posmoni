@@ -255,6 +255,7 @@ func (e *eth2Monitor) TrackSync(done <-chan struct{}, beaconEndpoints, execution
 			select {
 			case <-done:
 				close(c)
+				log.WithFields(logFields).Info("TrackSync done")
 				return
 			case <-time.After(w):
 				if w == 0 {
