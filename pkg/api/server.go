@@ -1,15 +1,17 @@
 package api
 
 import (
+	"time"
+
+	log "github.com/sirupsen/logrus"
+
 	"encoding/json"
 	"github.com/NethermindEth/posmoni/pkg/eth2"
 	"github.com/NethermindEth/posmoni/pkg/eth2/db"
 	net "github.com/NethermindEth/posmoni/pkg/eth2/networking"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
-	log "github.com/sirupsen/logrus"
 	"net/http"
-	"time"
 )
 
 var (
@@ -57,8 +59,8 @@ func (s *Server) trackSync(w http.ResponseWriter, r *http.Request) {
 	}
 	monitor, err := eth2.NewEth2Monitor(
 		db.EmptyRepository{},
-		&net.BeaconClient{RetryDuration: time.Second},
-		&net.ExecutionClient{RetryDuration: time.Second},
+		&net.BeaconClient{RetryDuration: time.Minute * 10},
+		&net.ExecutionClient{RetryDuration: time.Minute * 10},
 		net.SubscribeOpts{},
 		eth2.ConfigOpts{
 			HandleCfg: false,

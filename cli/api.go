@@ -26,7 +26,7 @@ Starts a api to monitor Ethereum Beacon Chain validator's balance changes and mi
 func init() {
 	RootCmd.AddCommand(serverCmd)
 
-	serverCmd.Flags().Int64Var(&port, "port", 8080, "Port to listen to")
+	serverCmd.Flags().Int64Var(&port, "port", 12001, "Port to listen to")
 }
 
 func ExecuteServer() {
